@@ -1,0 +1,77 @@
+﻿@model GameServerManagerWebApp.Entites.GameServerConfiguration
+
+@{
+    ViewData["Title"] = "Configuration rapide";
+}
+
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="AdminGameServers" asp-action="Index">Serveurs</a></li>
+            <li class="breadcrumb-item"><a asp-controller="AdminGameServers" asp-action="Details" asp-route-id="@Model.GameServerID">@Model.GameServer.Label</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.GameServerConfigurationID">@Model.Label</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@ViewData["Title"]</li>
+        </ol>
+    </nav>
+}
+
+@section Title { <h1><span>@ViewData["Title"]</span></h1> }
+
+@if (Model.IsActive)
+{
+    <p class="alert alert-info" role="alert">
+        La modification sera appliquée immédiatement sur le serveur. Un redémarrage est nécessaire pour sa prise en compte.
+    </p>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="GameServerConfigurationID" />
+            <div class="form-group">
+                <label asp-for="ServerName" class="control-label"></label>
+                <input asp-for="ServerName" class="form-control" />
+                <span asp-validation-for="ServerName" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ServerPassword" class="control-label"></label>
+                <input asp-for="ServerPassword" class="form-control" />
+                <span asp-validation-for="ServerPassword" class="text-danger"></span>
+            </div>
+            <div class="form-row">
+                <div class="col form-group">
+                    <label asp-for="ServerMission" class="control-label"></label>
+                    <select asp-for="ServerMission" class="form-control" asp-items="@ViewBag.ServerMission">
+                        <option value="">Nouveau fichier:</option>
+                    </select>
+                    <span asp-validation-for="ServerMission" class="text-danger"></span>
+                </div>
+                <div class="col form-group">
+                    <label for="missionfile" class="control-label">Fichier de mission (.pbo)</label>
+                    <input type="file" class="form-control form-control-file" id="missionfile" name="mission" accept=".pbo" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="col form-group">
+                    <label asp-for="ModsetID" class="control-label"></label>
+                    <select asp-for="ModsetID" class="form-control" asp-items="@ViewBag.ModsetID">
+                        <option value="">Nouveau fichier:</option>
+                    </select>
+                    <span asp-validation-for="ModsetID" class="text-danger"></span>
+                </div>
+                <div class="col form-group">
+                    <label for="modsetfile" class="control-label">Fichier mod pack (.html)</label>
+                    <input type="file" class="form-control form-control-file" id="modsetfile" name="modset" accept=".html,text/html" />
+                </div>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Enregistrer" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

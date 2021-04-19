@@ -1,0 +1,41 @@
+﻿@model GameConfigurationFile
+@{
+    ViewData["Title"] = $"{Model.Configuration.Label}: {@Model.Path}";
+}
+
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="AdminGameServers" asp-action="Index">Serveurs</a></li>
+            <li class="breadcrumb-item"><a asp-controller="AdminGameServers" asp-action="Details" asp-route-id="@Model.Configuration.GameServerID">@Model.Configuration.GameServer.Label</a></li>
+            <li class="breadcrumb-item"><a asp-controller="AdminGameServerConfigurations" asp-action="Details" asp-route-id="@Model.Configuration.GameServerConfigurationID">@Model.Configuration.Label</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Path</li>
+        </ol>
+    </nav>
+}
+
+@section Title { <h1><span>@ViewData["Title"]</span></h1> }
+
+@if (Model.Configuration.IsActive)
+{
+    <p class="alert alert-info" role="alert">
+        La modification sera appliquée immédiatement sur le serveur. Un redémarrage est nécessaire pour sa prise en compte.
+    </p>
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <form asp-action="EditConfig" asp-route-id="@Model.GameConfigurationFileID">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="GameConfigurationFileID" />
+            <div class="form-group">
+                <label asp-for="Content" class="control-label">@Model.Path</label>
+                <textarea asp-for="Content" class="form-control" rows="25" style="font-family: SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;"></textarea>
+                <span asp-validation-for="Content" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Enregistrer" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>

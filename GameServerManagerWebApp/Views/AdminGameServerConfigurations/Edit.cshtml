@@ -1,0 +1,64 @@
+﻿@model GameServerManagerWebApp.Entites.GameServerConfiguration
+
+@{
+    ViewData["Title"] = "Informations générales";
+}
+
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="AdminGameServers" asp-action="Index">Serveurs</a></li>
+            <li class="breadcrumb-item"><a asp-controller="AdminGameServers" asp-action="Details" asp-route-id="@Model.GameServerID">@Model.GameServer.Label</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.GameServerConfigurationID">@Model.Label</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@ViewData["Title"]</li>
+        </ol>
+    </nav>
+}
+
+@section Title { <h1><span>@ViewData["Title"]</span></h1> }
+
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="GameServerConfigurationID" />
+            <div class="form-group">
+                <label asp-for="Label" class="control-label"></label>
+                <input asp-for="Label" class="form-control" />
+                <span asp-validation-for="Label" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="VoipServer" class="control-label"></label>
+                <input asp-for="VoipServer" class="form-control" />
+                <span asp-validation-for="VoipServer" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="VoipChannel" class="control-label"></label>
+                <input asp-for="VoipChannel" class="form-control" />
+                <span asp-validation-for="VoipChannel" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="VoipPassword" class="control-label"></label>
+                <input asp-for="VoipPassword" class="form-control" />
+                <span asp-validation-for="VoipPassword" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="EventHref" class="control-label"></label>
+                <input asp-for="EventHref" class="form-control" />
+                <span asp-validation-for="EventHref" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="EventImage" class="control-label"></label>
+                <input asp-for="EventImage" class="form-control" />
+                <span asp-validation-for="EventImage" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Enregistrer" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

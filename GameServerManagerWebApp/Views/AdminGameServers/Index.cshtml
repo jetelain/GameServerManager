@@ -1,0 +1,60 @@
+﻿@model List<GameServerInfo>
+@{
+    ViewData["Title"] = "Serveurs";
+}
+
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item active" aria-current="page">@ViewData["Title"]</li>
+        </ol>
+    </nav>
+}
+
+@section Title { <h1><span>@ViewData["Title"]</span></h1> }
+
+<form asp-action="Index">
+    <p>
+        <a class="btn btn-primary" asp-action="Create">Créer un serveur</a>
+        <a class="btn btn-outline-secondary" asp-action="Index"><i class="fas fa-sync"></i> Actualiser</a>
+    </p>
+</form>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Serveur</th>
+            <th>Type</th>
+            <th>Etat</th>
+            <th>%CPU</th>
+            <th>%Mémoire</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var game in Model)
+        {
+            <tr>
+                <td><a asp-action="Details" asp-route-id="@game.GameServer.GameServerID">@game.GameServer.Label</a></td>
+                <td>@Html.DisplayFor(_ => game.GameServer.Type)</td>
+                <td>
+                    @if (game.Running)
+                    {
+                        <span class="badge badge-success">Démarré</span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-danger">Arrêté</span>
+                    }
+                </td>
+                <td><span title="@string.Join(", ", game.Processes.Select(p => $"{p.User} ({p.Cpu}%)"))">@game.Cpu</span></td>
+                <td><span title="@string.Join(", ", game.Processes.Select(p => $"{p.User} ({p.Mem}%)"))">@game.Mem</span></td>
+                <td>
+                    <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@game.GameServer.GameServerID">Détails</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="FullLog" asp-route-id="@game.GameServer.GameServerID" asp-fragment="endofpage"><i class="far fa-file-alt"></i> Logs</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@game.GameServer.GameServerID">Modifier</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

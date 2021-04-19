@@ -1,0 +1,103 @@
+﻿@model GameServerManagerWebApp.Entites.GameServerConfiguration
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+
+<h4>GameServerConfiguration</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Copy">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="GameServerConfigurationID" />
+
+            <div class="form-group">
+                <label asp-for="GameServerID" class="control-label"></label>
+                <select asp-for="GameServerID" class="form-control" asp-items="ViewBag.GameServerID"></select>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Label" class="control-label"></label>
+                <input asp-for="Label" class="form-control" />
+                <span asp-validation-for="Label" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="VoipServer" class="control-label"></label>
+                <input asp-for="VoipServer" class="form-control" />
+                <span asp-validation-for="VoipServer" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="VoipChannel" class="control-label"></label>
+                <input asp-for="VoipChannel" class="form-control" />
+                <span asp-validation-for="VoipChannel" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="VoipPassword" class="control-label"></label>
+                <input asp-for="VoipPassword" class="form-control" />
+                <span asp-validation-for="VoipPassword" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="EventHref" class="control-label"></label>
+                <input asp-for="EventHref" class="form-control" />
+                <span asp-validation-for="EventHref" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="EventImage" class="control-label"></label>
+                <input asp-for="EventImage" class="form-control" />
+                <span asp-validation-for="EventImage" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="ServerName" class="control-label"></label>
+                <input asp-for="ServerName" class="form-control" />
+                <span asp-validation-for="ServerName" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ServerPassword" class="control-label"></label>
+                <input asp-for="ServerPassword" class="form-control" />
+                <span asp-validation-for="ServerPassword" class="text-danger"></span>
+            </div>
+            <div class="form-row">
+                <div class="col form-group">
+                    <label asp-for="ServerMission" class="control-label"></label>
+                    <select asp-for="ServerMission" class="form-control" asp-items="@ViewBag.ServerMission">
+                        <option value="">Nouveau fichier:</option>
+                    </select>
+                    <span asp-validation-for="ServerMission" class="text-danger"></span>
+                </div>
+                <div class="col form-group">
+                    <label for="missionfile" class="control-label">Fichier de mission (.pbo)</label>
+                    <input type="file" class="form-control form-control-file" id="missionfile" name="mission" accept=".pbo" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="col form-group">
+                    <label asp-for="ModsetID" class="control-label"></label>
+                    <select asp-for="ModsetID" class="form-control" asp-items="@ViewBag.ModsetID">
+                        <option value="">Nouveau fichier:</option>
+                    </select>
+                    <span asp-validation-for="ModsetID" class="text-danger"></span>
+                </div>
+                <div class="col form-group">
+                    <label for="modsetfile" class="control-label">Fichier mod pack (.html)</label>
+                    <input type="file" class="form-control form-control-file" id="modsetfile" name="modset" accept=".html,text/html" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Créer une copie" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

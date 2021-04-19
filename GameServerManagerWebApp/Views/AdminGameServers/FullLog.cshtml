@@ -1,0 +1,41 @@
+﻿@model ServerInfosViewModel
+@{
+    ViewData["Title"] = "Logs";
+}
+
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Serveurs</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.GameServer.GameServerID">@Model.GameServer.Label</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@ViewData["Title"]</li>
+        </ol>
+    </nav>
+}
+
+@section Title { <h1><span>@ViewData["Title"]</span></h1> }
+<table class="table">
+    <thead>
+        <tr>
+            <th>Processus</th>
+            <th>%CPU</th>
+            <th>%Mémoire</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var process in Model.Infos.Processes)
+        {
+            <tr>
+                <td>@process.User</td>
+                <td>@process.Cpu</td>
+                <td>@process.Mem</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<pre>
+@Model.Console
+</pre>
+
+<a name="endofpage"></a>

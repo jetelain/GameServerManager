@@ -1,0 +1,97 @@
+﻿@model SetupArma3ModsetVM
+@{
+    ViewData["Title"] = Model.Game.Name + " - Configurer un mod pack";
+}
+
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Admin">Administration</a></li>
+            <li class="breadcrumb-item"><a asp-action="Index">Serveurs</a></li>
+            <li class="breadcrumb-item"><a asp-action="ServerInfos" asp-route-id="@Model.Game.Name">@Model.Game.Name</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Configurer un mod pack</li>
+        </ol>
+    </nav>
+}
+
+@section Title {
+    <p><span>@Model.Game.Name</span></p>
+    <h1><span>Configurer un mod pack</span></h1>
+}
+
+@if (Model.IsSetupOK)
+{
+    <div class="alert alert-success" role="alert">
+        <h4 class="alert-heading">Mod pack configuré avec succés.</h4>
+        <p>Un redémarrage du serveur est requis pour que le nouveau mod pack soit pris en compte.</p>
+    </div>
+}
+else
+{
+    @if (Model.IsSetupFailed)
+    {
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">Erreur lors de la configuration du mod pack.</h4>
+            <p>Certains mods ne sont pas disponibles sur le serveur. Contacter GrueArbre ou Koala pour ajouter les mods au catalogue :</p>
+            <ul>
+                @foreach(var mod in Model.Mods.Where(m => !m.IsOK))
+                {
+                    <li>@mod.Id (@mod.Name)</li>
+                }
+            </ul>
+            <p>Aucune modification n'a été apportée sur le serveur, le précédent mod pack reste actif.</p>
+        </div>
+    }
+
+    <form asp-action="SetupArma3ModPack" asp-route-id="@Model.Game.Name" enctype="multipart/form-data">
+        <div class="form-group">
+            <label asp-for="ModsetID" class="control-label">Modpack</label>
+            <select asp-for="ModsetID" class="form-control">
+                @foreach (var pack in Model.Modsets)
+                {
+                    <option value="@pack.ModsetID">@pack.Label (@pack.Count)</option>
+                }
+                <option value="">Autre, fichier ci-dessous :</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="file" class="control-label">Fichier mod pack (.html)</label>
+            <input id="file" name="file" type="file" class="form-control form-control-file" />
+        </div>
+        <div class="form-group">
+            <input type="submit" value="Configurer le mod pack" class="btn btn-primary" />
+        </div>
+    </form>
+}
+
+@if (Model.Mods != null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Nom</th>
+                <th>Etat</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var mod in Model.Mods)
+            {
+                <tr>
+                    <td><a href="@mod.Href" target="_blank">@mod.Id</a></td>
+                    <td>@mod.Name</td>
+                    <td>
+                        @if (mod.IsOK)
+                        {
+                            <span class="text-success">OK</span>
+                        }
+                        else
+                        {
+                            <span class="text-danger">@mod.Message</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

@@ -1,0 +1,35 @@
+﻿@model EditConfigViewModel
+@{
+    ViewData["Title"] = $"{Model.GameName}: {@Model.FileName}";
+}
+
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Admin">Administration</a></li>
+            <li class="breadcrumb-item"><a asp-action="Index">Serveurs</a></li>
+            <li class="breadcrumb-item"><a asp-action="ServerInfos" asp-route-id="@Model.GameName">@Model.GameName</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.FileName</li>
+        </ol>
+    </nav>
+}
+
+@section Title { <h1><span>@ViewData["Title"]</span></h1> }
+
+<div class="row">
+    <div class="col-md-12">
+        <form asp-action="EditConfig" asp-route-id="@Model.GameName">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="FileIndex" />
+            <input type="hidden" asp-for="GameName" />
+            <div class="form-group">
+                <label asp-for="FileContent" class="control-label">@Model.FileName</label>
+                <textarea asp-for="FileContent" class="form-control" rows="25" style="font-family: SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;"></textarea>
+                <span asp-validation-for="FileContent" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Enregistrer" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>

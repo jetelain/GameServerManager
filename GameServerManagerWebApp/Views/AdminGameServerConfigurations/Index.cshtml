@@ -1,0 +1,113 @@
+﻿@model IEnumerable<GameServerManagerWebApp.Entites.GameServerConfiguration>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.IsActive)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.AccessToken)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.GameServer)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ServerName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ServerPassword)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ServerMission)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.VoipServer)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.VoipChannel)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.VoipPassword)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EventHref)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EventImage)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Modset)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Label)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.LastChangeUTC)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.IsActive)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.AccessToken)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.GameServer.GameServerID)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ServerName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ServerPassword)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ServerMission)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.VoipServer)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.VoipChannel)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.VoipPassword)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EventHref)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EventImage)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Modset.ModsetID)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Label)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.LastChangeUTC)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.GameServerConfigurationID">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.GameServerConfigurationID">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.GameServerConfigurationID">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

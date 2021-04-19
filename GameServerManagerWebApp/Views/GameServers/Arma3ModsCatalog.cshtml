@@ -1,0 +1,40 @@
+﻿@model Arma3ModsCatalogVM
+@{
+    ViewData["Title"] = Model.Server + " - Catalogue des Mods Arma3";
+}
+
+@section NavBar { 
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Admin">Administration</a></li>
+            <li class="breadcrumb-item"><a asp-action="Index">Serveurs</a></li>
+            <li class="breadcrumb-item">@Model.Server</li>
+            <li class="breadcrumb-item active" aria-current="page">Catalogue des Mods Arma3</li>
+        </ol>
+    </nav> 
+}
+
+@section Title { <p><span>@Model.Server</span></p>
+<h1><span>Catalogue des Mods Arma3</span></h1> }
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Nom</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var mod in Model.Mods)
+        {
+        <tr>
+            <td><a href="@mod.Href" target="_blank">@mod.Id</a></td>
+            <td>@mod.Name</td>
+            <td>
+
+            </td>
+        </tr>
+        }
+    </tbody>
+</table>
