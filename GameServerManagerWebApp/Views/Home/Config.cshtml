@@ -1,0 +1,206 @@
+﻿@model GameServerManagerWebApp.Entites.GameServerConfiguration
+@{
+    ViewData["Title"] = Model.Label;
+    Layout = "_PublicLayout";
+}
+
+<div class="headblock" style="background-image:url(@Model.EventImage);">
+
+    <div class="container">
+
+        <h1>
+            @Model.Label
+        </h1>
+
+        <div class="row mb-4">
+
+            <div class="col-md-6 col-xl-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">
+                            <i class="fas fa-server"></i> Serveur
+                        </h5>
+                        @if (Model.IsActive)
+                        {
+                            <p class="card-text">
+                                @Model.ServerName<br />
+                                Adresse IP: <code>@Model.GameServer.Address</code><br />
+                                Port: <code>@Model.GameServer.Port</code><br />
+                                Mot de passe: <code>@Model.ServerPassword</code>
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="card-text">Le serveur n'est pas encore disponible.</p>
+                        }
+                        <div class="mt-auto">
+                            <a href="#connect" class="btn btn-sm btn-outline-secondary"><i class="fas fa-question-circle"></i> Comment se connecter ?</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.Modset != null)
+            {
+                <div class="col-md-6 col-xl-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">
+                                <i class="fas fa-cubes"></i> Modpack <span class="badge badge-primary">@Model.Modset.Count</span>
+                            </h5>
+                            <p>
+                                Modpack <code>@Model.Modset.Name</code> avec @Model.Modset.Count mods
+                            </p>
+                            <p>
+                                <a asp-action="DownloadModset" asp-route-id="@Model.ModsetID" asp-route-t="@Model.Modset.AccessToken" class="btn btn-lg btn-primary"><i class="fas fa-download"></i> Télécharger</a>
+                            </p>
+                            <div class="mt-auto">
+                                <a href="#install" class="btn btn-sm btn-outline-secondary"><i class="fas fa-question-circle"></i> Comment installer ?</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.VoipServer))
+            {
+                <div class="col-md-6 col-xl-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">
+                                <i class="fab fa-teamspeak"></i> TeamSpeak
+                            </h5>
+                            <p class="card-text">
+                                Adresse: <code>@Model.VoipServer</code>
+                                @if (ViewData["VoipPlugin"] != null)
+                                {
+                                    <br />@:Plugin: @ViewData["VoipPlugin"]
+                                }
+                                @if (!string.IsNullOrEmpty(Model.VoipChannel))
+                                {
+                                    <br />@:Canal: <code>@Model.VoipChannel</code>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.VoipPassword))
+                                {
+                                    <br />@:Mot de passe: <code>@Model.VoipPassword</code>
+                                }
+                            </p>
+                            <div class="mt-auto">
+                                <a href="#teamspeak" class="btn btn-sm btn-outline-secondary"><i class="fas fa-question-circle"></i> Comment se connecter ?</a>
+                                @if (ViewData["VoipPlugin"] != null)
+                                {
+                                    <a class="btn btn-sm btn-outline-secondary" href="@ViewData["VoipPluginHelp"]"><i class="fas fa-question-circle"></i> @ViewData["VoipPlugin"]</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+    @if (!string.IsNullOrEmpty(Model.EventHref))
+    {
+    <p class="text-center">
+        <a class="btn btn-lg btn-secondary" href="@Model.EventHref"><i class="fas fa-share"></i> Retourner sur @(new Uri(Model.EventHref).Host)</a>
+    </p>
+    }
+
+    @if (Model.Modset != null)
+    {
+    <h2 class="mt-5"><a name="install"></a>Comment installer le Modpack ?</h2>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <img class="mw-100" src="~/img/modset/tuto_1.jpg" /><br />
+            1. Télécharger le fichier ".html" depuis cette page.
+        </div>
+        <div class="col-md-6 mb-3">
+            <img class="mw-100" src="~/img/modset/tuto_2.jpg" /><br />
+            2. Démarrer Arma3 depuis Steam. Depuis le launcher, aller dans l'onglet "MODS".
+        </div>
+        <div class="col-md-6 mb-3">
+            <img class="mw-100" src="~/img/modset/tuto_3.jpg" /><br />
+            3. En haut à droite, aller dans le menu "CONFIGURATION".
+        </div>
+        <div class="col-md-6 mb-3">
+            <img class="mw-100" src="~/img/modset/tuto_4.jpg" /><br />
+            4. Dans le paneau qui s'est affiché cliquer le bouton "Importer" (en bas à droite).
+        </div>
+        <div class="col-md-6 mb-3">
+            <img class="mw-100" src="~/img/modset/tuto_5_1.jpg" /><br />
+            5. Dans le dossier "Téléchargement", choisir le fichier ".html" que vous avez téléchargé.
+        </div>
+        <div class="col-md-6 mb-3">
+            <img class="mw-100" src="~/img/modset/tuto_5_2.jpg" /><br />
+            6. Valider.
+        </div>
+        <div class="col-md-6 mb-3">
+            <img class="mw-100" src="~/img/modset/tuto_6.jpg" /><br />
+            7. S'abonner aux mods manquants, une fois l'opération terminée, vous êtes prêt !.
+        </div>
+
+    </div>
+
+    }
+
+    <h2 class="mt-5"><a name="connect"></a>Comment se connecter au serveur ?</h2>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <img class="mw-100" src="~/img/server/1.jpg" /><br />
+            1. Après avoir configuré les mods appropriés, aller dans l'onglet "SERVEURS".
+        </div>
+        <div class="col-md-6 mb-3">
+            <img class="mw-100" src="~/img/server/2.jpg" /><br />
+            2. Cliquer sur le bouton "CONNEXION DIRECTE" en bas à droite de la fenêtre?
+        </div>
+        <div class="col-md-6 mb-3">
+            <img class="mw-100" src="~/img/server/3.jpg" /><br />
+            3. Saisir l'adresse du serveur, le mot de passe et le numéro de port.
+        </div>
+        <div class="col-md-6 mb-3">
+            <img class="mw-100" src="~/img/server/4.jpg" /><br />
+            4. Valider et attendre le chargement. Les fois suivantes le serveur apparaitra dans "RECENTS".
+        </div>
+        <div class="col-md-6 mb-3">
+            <img class="mw-100" src="~/img/server/5.jpg" /><br />
+            5. Si une fenêtre apparait, cliquer sur "GARDER LA SELECTION EN COURS ET SE CONNECTER" (bouton sur fond noir).
+        </div>
+    </div>
+
+
+    @if (!string.IsNullOrEmpty(Model.VoipServer))
+    {
+            <h2 class="mt-5"><a name="teamspeak"></a>Comment se connecter à TeamSpeak ?</h2>
+
+        @if (ViewData["VoipPlugin"] != null)
+        {
+        <p class="mb-2 mt-2">Le plugin @ViewData["VoipPlugin"] est requis : <a class="btn btn-sm btn-outline-secondary" href="@ViewData["VoipPluginHelp"]"><i class="fas fa-question-circle"></i> Voir la documentation</a></p>
+        }
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <img class="mw-100" src="~/img/ts/1.jpg" /><br />
+                1. Lancer TeamSpeak, aller dans le menu "Connexions", puis "Se connecter".
+            </div>
+            <div class="col-md-6 mb-3">
+                <img class="mw-100" src="~/img/ts/2.jpg" /><br />
+                2. Saisir le nom du serveur, l'éventuel mot de passe et votre nom (en général "Grade. Nom") et valider.
+            </div>
+            <div class="col-md-6 mb-3">
+                <img class="mw-100" src="~/img/ts/3.jpg" /><br />
+                3. Faire un double-clic sur le nom du canal indiqué.
+            </div>
+        </div>
+
+    }
+
+    @if (!string.IsNullOrEmpty(Model.EventHref))
+    {
+    <p class="text-center mt-5">
+        <a class="btn btn-outline-secondary" href="@Model.EventHref"><i class="fas fa-share"></i> Retourner sur @(new Uri(Model.EventHref).Host)</a>
+    </p>
+    }
+</div>

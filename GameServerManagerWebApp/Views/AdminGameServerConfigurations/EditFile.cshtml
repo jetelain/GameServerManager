@@ -34,7 +34,14 @@
                 <span asp-validation-for="Content" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <input type="submit" value="Enregistrer" class="btn btn-primary" />
+                @if (Model.Configuration.IsActive)
+                {
+                    <input type="submit" value="Enregistrer et appliquer" class="btn btn-primary" />
+                }
+                else
+                {
+                    <input type="submit" value="Enregistrer" class="btn btn-primary" />
+                }
             </div>
         </form>
     </div>

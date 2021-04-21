@@ -1,20 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using GameServerManagerWebApp.Entites;
+using GameServerManagerWebApp.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using GameServerManagerWebApp.Entites;
-using GameServerManagerWebApp.Services;
-using GameServerManagerWebApp.Models;
-using System.Text;
-using System.IO;
-using Microsoft.AspNetCore.Http;
-using System.Text.RegularExpressions;
+using Renci.SshNet;
 
 namespace GameServerManagerWebApp.Controllers
 {
+    [Authorize(Policy = "Admin")]
     public class AdminGameServerConfigurationsController : Controller
     {
         private readonly GameServerManagerContext _context;
@@ -24,13 +27,6 @@ namespace GameServerManagerWebApp.Controllers
         {
             _context = context;
             _service = service;
-        }
-
-        // GET: AdminGameServerConfigurations
-        public async Task<IActionResult> Index()
-        {
-            var gameServerManagerContext = _context.GameServerConfigurations.Include(g => g.GameServer).Include(g => g.Modset);
-            return View(await gameServerManagerContext.ToListAsync());
         }
 
         // GET: AdminGameServerConfigurations/Details/5
@@ -51,7 +47,7 @@ namespace GameServerManagerWebApp.Controllers
                 return NotFound();
             }
 
-            if (gameServerConfiguration.IsActive)
+            if (gameServerConfiguration.IsActive && gameServerConfiguration.GameServer.HostServerID != null)
             {
                 var gameConfig = _service.GetConfig(gameServerConfiguration.GameServer);
                 using (var client = _service.GetSftpClient(gameConfig.Server))
@@ -80,7 +76,7 @@ namespace GameServerManagerWebApp.Controllers
                 gameServerConfiguration.GameServerID = gameServerID.Value; 
             }
 
-            ViewData["GameServerID"] = new SelectList(_context.GameServers, "GameServerID", "GameServerID", gameServerConfiguration.GameServerID);
+            ViewData["GameServerID"] = new SelectList(_context.GameServers, "GameServerID", "Label", gameServerConfiguration.GameServerID);
             PrepareDropdownLists(gameServerConfiguration);
             return View(gameServerConfiguration);
         }
@@ -92,7 +88,13 @@ namespace GameServerManagerWebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Copy([Bind("GameServerConfigurationID,GameServerID,ServerName,ServerPassword,ServerMission,VoipServer,VoipChannel,VoipPassword,EventHref,EventImage,ModsetID,Label")] GameServerConfiguration gsc, IFormFile modset, IFormFile mission)
         {
-            var old = await _context.GameServerConfigurations.FirstOrDefaultAsync(m => m.GameServerConfigurationID == gsc.GameServerConfigurationID);
+            var source = await _context.GameServerConfigurations.FirstOrDefaultAsync(m => m.GameServerConfigurationID == gsc.GameServerConfigurationID);
+
+            gsc.GameServer = await _context.GameServers
+                .Include(g => g.HostServer)
+                .FirstOrDefaultAsync(m => m.GameServerID == gsc.GameServerID);
+
+            await HandleFiles(gsc, modset, mission);
 
             if (ModelState.IsValid)
             {
@@ -116,15 +118,67 @@ namespace GameServerManagerWebApp.Controllers
                         Content = f.Content,
                         Path = f.Path
                     }).ToList();
-                await ApplyEditConfig(copy.Files, old, gsc);
+                await ApplyEditConfig(copy.Files, source, gsc);
                 _context.Add(copy);
                 _context.AddRange(copy.Files);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(AdminGameServersController.Details), "AdminGameServers", new { id = gsc.GameServerID });
             }
-            ViewData["GameServerID"] = new SelectList(_context.GameServers, "GameServerID", "GameServerID", gsc.GameServerID);
+            ViewData["GameServerID"] = new SelectList(_context.GameServers, "GameServerID", "Label", gsc.GameServerID);
             PrepareDropdownLists(gsc);
             return View(gsc);
+        }
+
+        private async Task HandleFiles(GameServerConfiguration gsc, IFormFile modsetFile, IFormFile missionFile)
+        {
+            if (missionFile != null)
+            {
+                gsc.ServerMission = _service.UploadMissionFile(missionFile, gsc.GameServer);
+            }
+
+            if (modsetFile != null)
+            {
+                var modset = new Modset();
+                var errors = await _service.ParseArma3Modset(modset, modsetFile);
+                if (!string.IsNullOrEmpty(errors))
+                {
+                    ModelState.AddModelError("ModsetID", errors);
+                    return;
+                }
+                await GetOrCreateModset(gsc, modset);
+            }
+
+            if (gsc.ModsetID != null)
+            {
+                var actualModset = await _context.Modsets.FindAsync(gsc.ModsetID.Value);
+                var errors = _service.ValidateModsetOnServer(actualModset, gsc.GameServer);
+                if (!string.IsNullOrEmpty(errors))
+                {
+                    ModelState.AddModelError("ModsetID", errors);
+                    return;
+                }
+            }
+        }
+
+        private async Task GetOrCreateModset(GameServerConfiguration gsc, Modset modset)
+        {
+            var existing = await _context.Modsets.FirstOrDefaultAsync(m => m.Name == modset.Name && m.ConfigurationFile == modset.ConfigurationFile);
+            if (existing != null)
+            {
+                gsc.Modset = existing;
+                gsc.ModsetID = existing.ModsetID;
+            }
+            else
+            {
+                modset.GameType = GameServerType.Arma3;
+                modset.AccessToken = GameServerService.GenerateToken();
+                modset.Label = modset.Name;
+                _context.Add(modset);
+                await _context.SaveChangesAsync();
+
+                gsc.Modset = modset;
+                gsc.ModsetID = modset.ModsetID;
+            }
         }
 
         private async Task<IEnumerable<GameConfigurationFile>> ApplyEditConfig(List<GameConfigurationFile> files, GameServerConfiguration oldValue, GameServerConfiguration newValue)
@@ -251,17 +305,21 @@ namespace GameServerManagerWebApp.Controllers
         private void PrepareDropdownLists(GameServerConfiguration gameServerConfiguration)
         {
             ViewData["ModsetID"] = new SelectList(_context.Modsets, "ModsetID", "Name", gameServerConfiguration?.ModsetID);
-            var gameConfig = _service.GetConfig(gameServerConfiguration.GameServer);
-            using (var client = _service.GetSftpClient(gameConfig.Server))
+            if (gameServerConfiguration.GameServer.HostServerID != null)
             {
-                client.Connect();
-                if (!string.IsNullOrEmpty(gameConfig.MissionDirectory))
+                var gameConfig = _service.GetConfig(gameServerConfiguration.GameServer);
+
+                if (!string.IsNullOrEmpty(gameConfig.MissionDirectory) && gameServerConfiguration.GameServer.Type == GameServerType.Arma3)
                 {
-                    var missions = client.ListDirectory(gameConfig.MissionDirectory).Where(f => f.IsRegularFile).Select(f => Path.GetFileName(f.FullName)).Where(f => f.EndsWith(".pbo", StringComparison.OrdinalIgnoreCase)).Select(f => Path.GetFileNameWithoutExtension(f)).ToList();
-                    missions.Sort();
-                    ViewData["ServerMission"] = missions.Select(n => new SelectListItem(n,n)).ToList();
+                    using (var client = _service.GetSftpClient(gameConfig.Server))
+                    {
+                        client.Connect();
+                        var missions = client.ListDirectory(gameConfig.MissionDirectory).Where(f => f.IsRegularFile).Select(f => Path.GetFileName(f.FullName)).Where(f => f.EndsWith(".pbo", StringComparison.OrdinalIgnoreCase)).Select(f => Path.GetFileNameWithoutExtension(f)).ToList();
+                        missions.Sort();
+                        ViewData["ServerMission"] = missions.Select(n => new SelectListItem(n, n)).ToList();
+                        client.Disconnect();
+                    }
                 }
-                client.Disconnect();
             }
         }
 
@@ -286,6 +344,10 @@ namespace GameServerManagerWebApp.Controllers
                 return NotFound();
             }
 
+            gsc.GameServer = existing.GameServer;
+
+            await HandleFiles(gsc, modset, mission);
+
             if (ModelState.IsValid)
             {
                 try
@@ -297,21 +359,24 @@ namespace GameServerManagerWebApp.Controllers
                     existing.ServerMission = gsc.ServerMission;
                     existing.ModsetID = gsc.ModsetID;
 
-                    foreach (var file in files)
+                    if (existing.GameServer.HostServerID != null)
                     {
-                        _context.Update(file);
-                    }
-
-                    if (existing.IsActive)
-                    {
-                        using (var client = _service.GetSftpClient(existing.GameServer.HostServer))
+                        foreach (var file in files)
                         {
-                            client.Connect();
-                            foreach (var file in files)
+                            _context.Update(file);
+                        }
+
+                        if (existing.IsActive)
+                        {
+                            using (var client = _service.GetSftpClient(existing.GameServer.HostServer))
                             {
-                                client.WriteAllText(_service.GetFileFullPath(_service.GetConfig(file.Configuration.GameServer), file.Path, true), file.Content);
+                                client.Connect();
+                                foreach (var file in files)
+                                {
+                                    _service.WriteAllText(client, _service.GetFileFullPath(_service.GetConfig(file.Configuration.GameServer), file.Path), file.Content);
+                                }
+                                client.Disconnect();
                             }
-                            client.Disconnect();
                         }
                     }
 
@@ -382,7 +447,7 @@ namespace GameServerManagerWebApp.Controllers
                 .Include(g => g.Configuration).ThenInclude(g => g.Files)
                 .FirstOrDefaultAsync(m => m.GameConfigurationFileID == id);
 
-            if (file == null)
+            if (file == null || file.Configuration.GameServer.HostServerID == null)
             {
                 return NotFound();
             }
@@ -391,7 +456,7 @@ namespace GameServerManagerWebApp.Controllers
             {
                 using (var client = _service.GetSftpClient(file.Configuration.GameServer.HostServer))
                 {
-                    var fullpath = _service.GetFileFullPath(_service.GetConfig(file.Configuration.GameServer), file.Path, false);
+                    var fullpath = _service.GetFileFullPath(_service.GetConfig(file.Configuration.GameServer), file.Path);
                     client.Connect();
                     if (client.Exists(fullpath))
                     {
@@ -413,7 +478,7 @@ namespace GameServerManagerWebApp.Controllers
                 .Include(g => g.Configuration).ThenInclude(g => g.Files)
                 .FirstOrDefaultAsync(m => m.GameConfigurationFileID == id);
 
-            if (file == null)
+            if (file == null || file.Configuration.GameServer.HostServerID == null)
             {
                 return NotFound();
             }
@@ -431,7 +496,7 @@ namespace GameServerManagerWebApp.Controllers
                 using (var client = _service.GetSftpClient(file.Configuration.GameServer.HostServer))
                 {
                     client.Connect();
-                    client.WriteAllText(_service.GetFileFullPath(_service.GetConfig(file.Configuration.GameServer), file.Path, true), file.Content);
+                    _service.WriteAllText(client, _service.GetFileFullPath(_service.GetConfig(file.Configuration.GameServer), file.Path), file.Content);
                     client.Disconnect();
                 }
             }

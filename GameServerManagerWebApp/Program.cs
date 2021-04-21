@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using GameServerManagerWebApp.Entites;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -30,7 +31,7 @@ namespace GameServerManagerWebApp
                 try
                 {
                     var context = services.GetRequiredService<GameServerManagerContext>();
-                    context.Database.EnsureCreated();
+                    context.Database.Migrate();
                     context.InitBaseData();
                 }
                 catch (Exception ex)

@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using GameServerManagerWebApp.Entites;
 using GameServerManagerWebApp.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -11,7 +9,7 @@ using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,10 +44,7 @@ namespace GameServerManagerWebApp
                     options.LogoutPath = "/Authentication/SignOut";
                     options.AccessDeniedPath = "/Authentication/Denied";
                 })
-                .AddSteam(s =>
-                {
-                    s.ApplicationKey = Configuration.GetValue<string>("Steam:Key");
-                });
+                .AddSteam(s => s.ApplicationKey = Configuration.GetValue<string>("Steam:Key"));
 
             services.AddAuthorization(options =>
             {
@@ -82,6 +77,10 @@ namespace GameServerManagerWebApp
             }
             else
             {
+                app.UseForwardedHeaders(new ForwardedHeadersOptions
+                {
+                    ForwardedHeaders = ForwardedHeaders.XForwardedProto
+                });
                 app.UseExceptionHandler("/Home/Error");
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
@@ -91,11 +90,8 @@ namespace GameServerManagerWebApp
 
             app.UseRouting();
 
-            app.UseAuthorization();
-
             app.UseAuthentication();
-
-            app.UseRequestLocalization("fr-FR");
+            app.UseAuthorization();
 
             app.UseCookiePolicy(new CookiePolicyOptions()
             {
@@ -103,6 +99,8 @@ namespace GameServerManagerWebApp
                 Secure = CookieSecurePolicy.SameAsRequest,
                 MinimumSameSitePolicy = SameSiteMode.Lax
             });
+
+            app.UseRequestLocalization("fr-FR");
 
             app.UseEndpoints(endpoints =>
             {

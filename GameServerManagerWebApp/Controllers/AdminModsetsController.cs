@@ -17,14 +17,16 @@ using Renci.SshNet;
 
 namespace GameServerManagerWebApp.Controllers
 {
-    //[Authorize(Policy = "Admin")]
+    [Authorize(Policy = "Admin")]
     public class AdminModsetsController : Controller
     {
         private readonly GameServerManagerContext _context;
+        private readonly GameServerService _service;
 
-        public AdminModsetsController(GameServerManagerContext context)
+        public AdminModsetsController(GameServerManagerContext context, GameServerService service)
         {
             _context = context;
+            _service = service;
         }
 
         // GET: Modsets
@@ -76,11 +78,12 @@ namespace GameServerManagerWebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Label")] Modset modset, IFormFile data)
         {
+            await _service.ParseArma3Modset(modset, data);
+
             if (ModelState.IsValid)
             {
                 modset.GameType = GameServerType.Arma3;
                 modset.AccessToken = GameServerService.GenerateToken();
-                await ParseArma3Modset(modset, data);
                 modset.Label = modset.Label ?? modset.Name;
                 _context.Add(modset);
                 await _context.SaveChangesAsync();
@@ -134,7 +137,7 @@ namespace GameServerManagerWebApp.Controllers
                     }
                     else
                     {
-                        await ParseArma3Modset(modset, data);
+                        await _service.ParseArma3Modset(modset, data);
                     }
                     _context.Update(modset);
                     await _context.SaveChangesAsync();
@@ -153,53 +156,6 @@ namespace GameServerManagerWebApp.Controllers
                 return RedirectToAction(nameof(Index));
             }
             return View(modset);
-        }
-
-        private async Task<bool> ParseArma3Modset(Modset modset, IFormFile data)
-        {
-            using (var reader = new StreamReader(data.OpenReadStream(), Encoding.UTF8))
-            {
-                modset.DefinitionFile = await reader.ReadToEndAsync();
-            }
-            modset.GameType = GameServerType.Arma3;
-            modset.LastUpdate = DateTime.Now;
-            var doc = XDocument.Parse(modset.DefinitionFile);
-            modset.Count = doc.Descendants("tr").Attributes("data-type").Where(a => a.Value == "ModContainer").Count();
-            modset.Name = doc.Descendants("meta").Where(m => m.Attribute("name").Value == "arma:PresetName").Select(m => m.Attribute("content").Value).FirstOrDefault();
-            var analyze = AnalyseModsetFile(null, doc, null);
-            if (!analyze.Any(m => m.IsOK))
-            {
-                return false;
-            }
-            modset.ConfigurationFile = string.Join(";", analyze.Select(m => "@" + m.Id));
-            return true;
-        }
-        internal static List<SetupArma3Mod> AnalyseModsetFile(GameConfig game, XDocument doc, SftpClient client)
-        {
-            var steamPrefix = "http://steamcommunity.com/sharedfiles/filedetails/?id=";
-            var mods = new List<SetupArma3Mod>();
-            foreach (var mod in doc.Descendants("tr").Attributes("data-type").Where(a => a.Value == "ModContainer"))
-            {
-                var name = mod.Parent.Descendants("td").Attributes("data-type").Where(a => a.Value == "DisplayName").FirstOrDefault()?.Parent?.FirstNode?.ToString();
-                var href = mod.Parent.Descendants("a").Attributes("href").FirstOrDefault()?.Value;
-                if (!string.IsNullOrEmpty(href) && href.StartsWith(steamPrefix))
-                {
-                    var modSteamId = href.Substring(steamPrefix.Length);
-                    if (client == null || client.Exists(game.GameBaseDirectory + "/@" + modSteamId))
-                    {
-                        mods.Add(new SetupArma3Mod() { Id = modSteamId, Name = name, Href = href, IsOK = true });
-                    }
-                    else
-                    {
-                        mods.Add(new SetupArma3Mod() { Id = modSteamId, Name = name, Href = href, IsOK = false, Message = "Mod non disponible au catalogue" });
-                    }
-                }
-                else
-                {
-                    mods.Add(new SetupArma3Mod() { Name = name, Href = href, IsOK = false, Message = "Mod non disponible sur Steam" });
-                }
-            }
-            return mods;
         }
 
         // GET: Modsets/Delete/5

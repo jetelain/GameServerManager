@@ -13,21 +13,25 @@ using System.IO;
 using Renci.SshNet;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
+using System.Net.Http;
+using System.Xml.Linq;
 
 namespace GameServerManagerWebApp.Controllers
 {
-    //[Authorize(Policy = "Admin")]
+    [Authorize(Policy = "Admin")]
     public class AdminGameServersController : Controller
     {
         private readonly ILogger<AdminGameServersController> _logger;
         private readonly GameServerService _service;
         private readonly GameServerManagerContext _context;
+        private readonly IHttpClientFactory _factory;
 
-        public AdminGameServersController(ILogger<AdminGameServersController> logger, GameServerService service, GameServerManagerContext context)
+        public AdminGameServersController(ILogger<AdminGameServersController> logger, GameServerService service, GameServerManagerContext context, IHttpClientFactory factory)
         {
             _logger = logger;
             _service = service;
             _context = context;
+            _factory = factory;
         }
 
         [HttpGet]
@@ -63,6 +67,23 @@ namespace GameServerManagerWebApp.Controllers
             }
             await _service.StartGameServer(User, await GetActiveConfiguration(gameServer));
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ApplyConfig(int id)
+        {
+            var config = _context.GameServerConfigurations
+                .Include(s => s.GameServer).ThenInclude(s => s.SyncFiles)
+                .Include(s => s.GameServer).ThenInclude(s => s.HostServer)
+                .Include(s => s.Files)
+                .FirstOrDefault(g => g.GameServerConfigurationID == id);
+            if (config == null)
+            {
+                return NotFound();
+            }
+            await _service.ApplyAllConfiguration(config);
+            return RedirectToAction(nameof(Details), new { id = config.GameServerID });
         }
 
         [HttpPost]
@@ -118,34 +139,34 @@ namespace GameServerManagerWebApp.Controllers
             var currentConfig = await GetActiveConfiguration(gameServer);
 
             var vm = new ServerInfosViewModel();
-            var gameConfig = _service.GetConfig(gameServer);
-
-            using (var client = _service.GetSftpClient(gameConfig.Server))
-            {
-                client.Connect();
-                if (!string.IsNullOrEmpty(gameConfig.MissionDirectory))
-                {
-                    vm.MissionFiles = client.ListDirectory(gameConfig.MissionDirectory).Where(f => f.IsRegularFile).Select(f => Path.GetFileName(f.FullName)).Where(f => f.EndsWith(".pbo", StringComparison.OrdinalIgnoreCase)).ToList();
-                    vm.MissionFiles.Sort();
-                }
-                await _service.SyncConfig(client, gameConfig, currentConfig);
-                client.Disconnect();
-            }
-
             vm.GameServer = gameServer;
             vm.GameServer.Configurations = await _context.GameServerConfigurations
                 .Include(c => c.Modset)
                 .Where(c => c.GameServerID == gameServer.GameServerID).ToListAsync();
-
-            vm.Game = gameConfig;
             vm.CurrentConfig = currentConfig;
-            vm.Infos = _service.GetGameInfos(gameServer, _service.GetRunningProcesses(gameConfig.Server));
-            vm.ConfigFiles = gameConfig.ConfigFiles.Select((f, i) => new ConfigFileInfos()
-            {
-                Index = i,
-                Name = Path.GetFileName(f)
-            }).ToList();
 
+            if (gameServer.HostServerID != null)
+            {
+                var gameConfig = _service.GetConfig(gameServer);
+                using (var client = _service.GetSftpClient(gameConfig.Server))
+                {
+                    client.Connect();
+                    if (!string.IsNullOrEmpty(gameConfig.MissionDirectory) && gameServer.Type == GameServerType.Arma3)
+                    {
+                        vm.MissionFiles = client.ListDirectory(gameConfig.MissionDirectory).Where(f => f.IsRegularFile).Select(f => Path.GetFileName(f.FullName)).Where(f => f.EndsWith(".pbo", StringComparison.OrdinalIgnoreCase)).ToList();
+                        vm.MissionFiles.Sort();
+                    }
+                    await _service.SyncConfig(client, gameConfig, currentConfig);
+                    client.Disconnect();
+                }
+                vm.Game = gameConfig;
+                vm.Infos = _service.GetGameInfos(gameServer, _service.GetRunningProcesses(gameConfig.Server));
+                vm.ConfigFiles = gameConfig.ConfigFiles.Select((f, i) => new ConfigFileInfos()
+                {
+                    Index = i,
+                    Name = Path.GetFileName(f)
+                }).ToList();
+            }
             return View(vm);
         }
 
@@ -171,15 +192,15 @@ namespace GameServerManagerWebApp.Controllers
         [HttpGet]
         public IActionResult FullLog(int id)
         {
-            var g = _context.GameServers.Include(g => g.HostServer).FirstOrDefault(g => g.GameServerID == id);
-            if (g == null)
+            var gameServer = _context.GameServers.Include(g => g.HostServer).FirstOrDefault(g => g.GameServerID == id);
+            if (gameServer == null || gameServer.HostServerID == null)
             {
-                return BadRequest();
+                return NotFound();
             }
-            var game = _service.GetConfig(g);
+            var game = _service.GetConfig(gameServer);
             var vm = new ServerInfosViewModel();
-            vm.GameServer = g;
-            vm.Infos = _service.GetGameInfos(g, _service.GetRunningProcesses(game.Server));
+            vm.GameServer = gameServer;
+            vm.Infos = _service.GetGameInfos(gameServer, _service.GetRunningProcesses(game.Server));
             using (var client = _service.GetSftpClient(game.Server))
             {
                 client.Connect();
@@ -194,14 +215,42 @@ namespace GameServerManagerWebApp.Controllers
             return View(vm);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Audit(int id)
+        {
+            var gameServer = _context.GameServers.Include(g => g.HostServer).FirstOrDefault(g => g.GameServerID == id);
+            if (gameServer == null || gameServer.HostServerID == null)
+            {
+                return NotFound();
+            }
+
+            var logs = await _context.GameLogEvents.Where(e => e.GameServerID == id)
+                .OrderByDescending(e => e.Timestamp)
+                .Take(1000)
+                .ToListAsync();
+
+            var client = _factory.CreateClient();
+            var names = new Dictionary<string, string>();
+            foreach (var steamid in logs.Select(s => s.SteamId).Distinct())
+            {
+                if (!string.IsNullOrEmpty(steamid))
+                {
+                    var doc = XDocument.Parse(await client.GetStringAsync($"https://steamcommunity.com/profiles/{steamid}/?xml=1"));
+                    names[steamid] = doc.Element("profile").Element("steamID").Value;
+                }
+            }
+            ViewData["Server"] = gameServer;
+            return View(logs.Select(l => new LogVM { Log = l, User = names.TryGetValue(l.SteamId, out string name) ? name : string.Empty }).ToList());
+        }
+
         public IActionResult DownloadMission(int id, string mission)
         {
-            var g = _context.GameServers.Include(g => g.HostServer).FirstOrDefault(g => g.GameServerID == id);
-            if (g == null)
+            var gameServer = _context.GameServers.Include(g => g.HostServer).FirstOrDefault(g => g.GameServerID == id);
+            if (gameServer == null || gameServer.HostServerID == null)
             {
-                return BadRequest();
+                return NotFound();
             }
-            var game = _service.GetConfig(g);
+            var game = _service.GetConfig(gameServer);
 
             var name = Path.GetFileName(mission);
             var sourceFile = game.MissionDirectory + "/" + name;
@@ -224,72 +273,15 @@ namespace GameServerManagerWebApp.Controllers
         [HttpPost]
         public IActionResult UploadMission(int id, IFormFile file)
         {
-            var g = _context.GameServers.Include(g => g.HostServer).FirstOrDefault(g => g.GameServerID == id);
-            if (g == null)
+            var gameServer = _context.GameServers.Include(g => g.HostServer).FirstOrDefault(g => g.GameServerID == id);
+            if (gameServer == null)
             {
                 return BadRequest();
             }
-            var game = _service.GetConfig(g);
-
-            var name = Path.GetFileName(file.FileName);
-
-            var targetFile = game.MissionDirectory + "/" + name;
-
-            using (var client = _service.GetSftpClient(game.Server))
-            {
-                client.Connect();
-
-                BackupIfExists(targetFile, client);
-
-                using (var source = file.OpenReadStream())
-                {
-                    client.UploadFile(source, targetFile, true);
-                }
-                client.Disconnect();
-            }
+            _service.UploadMissionFile(file, gameServer);
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        private static void BackupIfExists(string targetFile, SftpClient client)
-        {
-            if (client.Exists(targetFile))
-            {
-                var backupName = targetFile + ".old";
-                var i = 2;
-                while (client.Exists(backupName))
-                {
-                    backupName = targetFile + ".old" + i;
-                    i++;
-                }
-                client.RenameFile(targetFile, backupName);
-            }
-        }
-
-        //// GET: AdminGameServers
-        //public async Task<IActionResult> Index()
-        //{
-        //    var gameServerManagerContext = _context.GameServers.Include(g => g.HostServer);
-        //    return View(await gameServerManagerContext.ToListAsync());
-        //}
-
-        //// GET: AdminGameServers/Details/5
-        //public async Task<IActionResult> Details(int? id)
-        //{
-        //    if (id == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    var gameServer = await _context.GameServers
-        //        .Include(g => g.HostServer)
-        //        .FirstOrDefaultAsync(m => m.GameServerID == id);
-        //    if (gameServer == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    return View(gameServer);
-        //}
 
         // GET: AdminGameServers/Create
         public IActionResult Create()

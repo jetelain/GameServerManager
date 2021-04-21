@@ -26,14 +26,14 @@ namespace GameServerManagerWebApp.Entites
 
         [Display(Name = "Serveur TeamSpeak")]
         public string VoipServer { get; set; }
-        [Display(Name = "Cannal TeamSpeak")]
+        [Display(Name = "Canal TeamSpeak")]
         public string VoipChannel { get; set; }
         [Display(Name = "Mot de passe TeamSpeak")]
         public string VoipPassword { get; set; }
 
-        [Display(Name = "Affichage publique: Lien vers une page web")]
+        [Display(Name = "Lien vers la page associée (événement, site officiel ou autre)")]
         public string EventHref { get; set; }
-        [Display(Name = "Affichage publique: Image de fond")]
+        [Display(Name = "Image de fond")]
         public string EventImage { get; set; }
 
         [Display(Name = "Modpack")]

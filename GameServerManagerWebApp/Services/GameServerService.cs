@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using GameServerManagerWebApp.Entites;
 using GameServerManagerWebApp.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -98,6 +102,10 @@ namespace GameServerManagerWebApp.Services
 
         internal GameConfig GetConfig(GameServer server)
         {
+            if (server.HostServerID == null)
+            {
+                throw new ArgumentException();
+            }
             if (server.Type == GameServerType.Arma3)
             {
                 return new GameConfig()
@@ -169,6 +177,24 @@ namespace GameServerManagerWebApp.Services
 
             var game = GetConfig(currentConfig.GameServer);
 
+            await ApplyAllConfiguration(currentConfig, game);
+
+            using (var client = GetClient(game.Server))
+            {
+                client.Connect();
+                var result = client.RunCommand(game.StartCmd);
+                Thread.Sleep(100);
+                client.Disconnect();
+            }
+        }
+
+        internal async Task ApplyAllConfiguration(GameServerConfiguration currentConfig)
+        {
+            await ApplyAllConfiguration(currentConfig, GetConfig(currentConfig.GameServer));
+        }
+
+        private async Task ApplyAllConfiguration(GameServerConfiguration currentConfig, GameConfig game)
+        {
             if (!currentConfig.IsActive || currentConfig.GameServer.SyncFiles.Count > 0)
             {
                 using (var client = GetSftpClient(currentConfig.GameServer.HostServer))
@@ -184,14 +210,6 @@ namespace GameServerManagerWebApp.Services
                     }
                     client.Disconnect();
                 }
-            }
-
-            using (var client = GetClient(game.Server))
-            {
-                client.Connect();
-                var result = client.RunCommand(game.StartCmd);
-                Thread.Sleep(100);
-                client.Disconnect();
             }
         }
 
@@ -211,10 +229,10 @@ namespace GameServerManagerWebApp.Services
         {
             foreach (var configFile in currentConfig.Files)
             {
-                var fullpath = GetFileFullPath(game, configFile.Path, true);
+                var fullpath = GetFileFullPath(game, configFile.Path);
                 if (!client.Exists(fullpath) || client.ReadAllText(fullpath) != configFile.Content)
                 {
-                    client.WriteAllText(fullpath, configFile.Content);
+                    WriteAllText(client, fullpath, configFile.Content);
                 }
             }
             var activeList = await _context.GameServerConfigurations.Where(c => c.GameServerID == currentConfig.GameServerID && c.IsActive).ToListAsync();
@@ -240,10 +258,10 @@ namespace GameServerManagerWebApp.Services
                     _context.Update(syncFile);
                     await _context.SaveChangesAsync();
                 }
-                var fullpath = GetFileFullPath(game, syncFile.Path, true);
+                var fullpath = GetFileFullPath(game, syncFile.Path);
                 if (!client.Exists(fullpath) || client.ReadAllText(fullpath) != syncFile.Content)
                 {
-                    client.WriteAllText(fullpath, syncFile.Content);
+                    WriteAllText(client, fullpath, syncFile.Content);
                 }
             }
         }
@@ -302,7 +320,7 @@ namespace GameServerManagerWebApp.Services
             var wasUpdated = false;
             foreach (var file in config.ConfigFiles)
             {
-                string fullPath = GetFileFullPath(config, file, false);
+                string fullPath = GetFileFullPath(config, file);
                 var content = string.Empty;
                 var lastWriteUTC = DateTime.MinValue;
                 if (client.Exists(fullPath))
@@ -350,14 +368,9 @@ namespace GameServerManagerWebApp.Services
             }
         }
 
-        internal string GetFileFullPath(GameConfig config, string file, bool forWrite)
+        internal string GetFileFullPath(GameConfig config, string file)
         {
-            var fullpath = config.GameBaseDirectory.TrimEnd('/') + '/' + file;
-            if (forWrite && _config.GetValue<bool>("DoNotWriteRealFiles", false))
-            {
-                fullpath = fullpath + ".test";
-            }
-            return fullpath;
+            return config.GameBaseDirectory.TrimEnd('/') + '/' + file;
         }
 
         internal async Task UpdateComputedProperties(GameServerConfiguration currentConfig)
@@ -391,6 +404,11 @@ namespace GameServerManagerWebApp.Services
             }
         }
 
+        internal void WriteAllText(SftpClient client, string path, string content)
+        {
+            client.UploadFile(new MemoryStream(Encoding.UTF8.GetBytes(content)), path, true);
+        }
+
         internal static string GenerateToken()
         {
             var random = new byte[32];
@@ -399,6 +417,113 @@ namespace GameServerManagerWebApp.Services
                 rng.GetBytes(random);
             }
             return Convert.ToBase64String(random).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+        }
+
+        internal string ValidateModsetOnServer(Modset actualModset, GameServer server)
+        {
+            var config = GetConfig(server);
+            using (var client = GetSftpClient(config.Server))
+            {
+                client.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(1000);
+                client.Connect();
+                var analyze = AnalyseModsetFile(config, XDocument.Parse(actualModset.DefinitionFile), client);
+                client.Disconnect();
+                if (!analyze.Any(m => m.IsOK))
+                {
+                    return ToErrorMessage(analyze);
+                }
+                return null;
+            }
+        }
+
+        private string ToErrorMessage(List<SetupArma3Mod> analyze)
+        {
+            return string.Join(", ", analyze.Where(e => !e.IsOK).Select(e => e.Message));
+        }
+
+        private List<SetupArma3Mod> AnalyseModsetFile(GameConfig game, XDocument doc, SftpClient client)
+        {
+            var steamPrefix = "http://steamcommunity.com/sharedfiles/filedetails/?id=";
+            var mods = new List<SetupArma3Mod>();
+            foreach (var mod in doc.Descendants("tr").Attributes("data-type").Where(a => a.Value == "ModContainer"))
+            {
+                var name = mod.Parent.Descendants("td").Attributes("data-type").Where(a => a.Value == "DisplayName").FirstOrDefault()?.Parent?.FirstNode?.ToString();
+                var href = mod.Parent.Descendants("a").Attributes("href").FirstOrDefault()?.Value;
+                if (!string.IsNullOrEmpty(href) && href.StartsWith(steamPrefix))
+                {
+                    var modSteamId = href.Substring(steamPrefix.Length);
+                    if (client == null || client.Exists(game.GameBaseDirectory + "/@" + modSteamId))
+                    {
+                        mods.Add(new SetupArma3Mod() { Id = modSteamId, Name = name, Href = href, IsOK = true });
+                    }
+                    else
+                    {
+                        mods.Add(new SetupArma3Mod() { Id = modSteamId, Name = name, Href = href, IsOK = false, Message = $"Mod '{name}' non installé sur le serveur." });
+                    }
+                }
+                else
+                {
+                    mods.Add(new SetupArma3Mod() { Name = name, Href = href, IsOK = false, Message = $"Mod '{name}' non disponible sur le Workshop." });
+                }
+            }
+            return mods;
+        }
+
+        internal async Task<string> ParseArma3Modset(Modset modset, IFormFile data)
+        {
+            using (var reader = new StreamReader(data.OpenReadStream(), Encoding.UTF8))
+            {
+                modset.DefinitionFile = await reader.ReadToEndAsync();
+            }
+            modset.GameType = GameServerType.Arma3;
+            modset.LastUpdate = DateTime.Now;
+            var doc = XDocument.Parse(modset.DefinitionFile);
+            modset.Count = doc.Descendants("tr").Attributes("data-type").Where(a => a.Value == "ModContainer").Count();
+            modset.Name = doc.Descendants("meta").Where(m => m.Attribute("name").Value == "arma:PresetName").Select(m => m.Attribute("content").Value).FirstOrDefault();
+            var analyze = AnalyseModsetFile(null, doc, null);
+            if (!analyze.Any(m => m.IsOK))
+            {
+                return ToErrorMessage(analyze);
+            }
+            modset.ConfigurationFile = string.Join(";", analyze.Select(m => "@" + m.Id));
+            return null;
+        }
+
+        internal string UploadMissionFile(IFormFile file, GameServer gameServer)
+        {
+            if (gameServer.Type != GameServerType.Arma3)
+            {
+                throw new ArgumentException();
+            }
+            var config = GetConfig(gameServer);
+            var name = Path.GetFileName(file.FileName);
+            var targetFile = config.MissionDirectory + "/" + name;
+            using (var client = GetSftpClient(config.Server))
+            {
+                client.Connect();
+                BackupIfExists(targetFile, client);
+                using (var source = file.OpenReadStream())
+                {
+                    client.UploadFile(source, targetFile, true);
+                }
+                client.Disconnect();
+            }
+            return Path.GetFileNameWithoutExtension(name);
+        }
+
+        private static void BackupIfExists(string targetFile, SftpClient client)
+        {
+            if (client.Exists(targetFile))
+            {
+                var backupName = targetFile + ".old";
+                var i = 2;
+                while (client.Exists(backupName))
+                {
+                    backupName = targetFile + ".old" + i;
+                    i++;
+                }
+                client.RenameFile(targetFile, backupName);
+            }
         }
     }
 }

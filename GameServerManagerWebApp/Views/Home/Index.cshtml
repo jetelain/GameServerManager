@@ -1,8 +1,46 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model IEnumerable<GameServerManagerWebApp.Entites.GameServerConfiguration>
+@{
+    ViewData["Title"] = "GSM";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Configuration</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var server in Model.GroupBy(s => s.GameServer).OrderBy(s => s.Key.Label))
+        {
+            <tr>
+                <td>
+                    <i class="fas fa-server"></i> <a class="font-weight-bold" asp-controller="AdminGameServers" asp-action="Details" asp-route-id="@server.Key.GameServerID">@server.Key.Label</a>
+                </td>
+                <td>
+                    <a class="btn btn-sm btn-outline-primary" asp-controller="AdminGameServers" asp-action="Details" asp-route-id="@server.Key.GameServerID">Détails</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-controller="AdminGameServers" asp-action="FullLog" asp-route-id="@server.Key.GameServerID"><i class="far fa-file-alt"></i> Logs</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-controller="AdminGameServers" asp-action="Audit" asp-route-id="@server.Key.GameServerID"><i class="fas fa-shield-alt"></i> Audit</a>
+                </td>
+            </tr>
+            @foreach(var config in server.OrderBy(c => c.Label))
+                {
+                            <tr>
+                <td class="pl-5">
+                    <a asp-controller="AdminGameServerConfigurations" asp-action="Details" asp-route-id="@config.GameServerConfigurationID">@config.Label</a>
+                    @if(config.IsActive)
+                    {
+                        <span class="badge badge-success">Actif</span>
+                    }
+                </td>
+                <td>
+                    <a class="btn btn-sm btn-outline-primary" asp-controller="AdminGameServerConfigurations" asp-action="Details" asp-route-id="@config.GameServerConfigurationID">Détails</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Config" asp-route-id="@config.GameServerConfigurationID" asp-route-t="@config.AccessToken"><i class="fas fa-external-link-square-alt"></i> Page publique</a>
+                </td>
+            </tr>
+                }
+
+        }
+    </tbody>
+</table>
+

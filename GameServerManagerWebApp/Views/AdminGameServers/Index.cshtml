@@ -52,6 +52,7 @@
                 <td>
                     <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@game.GameServer.GameServerID">Détails</a>
                     <a class="btn btn-sm btn-outline-secondary" asp-action="FullLog" asp-route-id="@game.GameServer.GameServerID" asp-fragment="endofpage"><i class="far fa-file-alt"></i> Logs</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Audit" asp-route-id="@game.GameServer.GameServerID"><i class="fas fa-shield-alt"></i> Audit</a>
                     <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@game.GameServer.GameServerID">Modifier</a>
                 </td>
             </tr>

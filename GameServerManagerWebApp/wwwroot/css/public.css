@@ -1,0 +1,16 @@
+﻿
+.headblock {
+    background-size: cover;
+    background-position: center;
+    padding-top: 6em;
+    padding-bottom: 2em;
+    margin-bottom: 2em;
+}
+
+    .headblock h1 {
+        margin-bottom: 1em;
+        color: white;
+        text-shadow: 1px 1px 10px black;
+        font-weight: bold;
+        text-transform:uppercase;
+    }
