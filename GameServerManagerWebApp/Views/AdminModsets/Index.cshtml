@@ -7,7 +7,6 @@
 @section NavBar {
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Admin">Administration</a></li>
             <li class="breadcrumb-item active" aria-current="page">@ViewData["Title"]</li>
         </ol>
     </nav> }
@@ -48,6 +47,7 @@
                 </td>
                 <td>
                     <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@item.ModsetID">Détails</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-controller="Home" asp-action="DownloadModset" asp-route-id="@item.ModsetID" asp-route-t="@item.AccessToken"><i class="fas fa-download"></i> Télécharger</a>
                     <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.ModsetID">Modifier</a>
                     <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.ModsetID">Supprimer</a>
                 </td>

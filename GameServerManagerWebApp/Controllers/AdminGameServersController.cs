@@ -144,7 +144,7 @@ namespace GameServerManagerWebApp.Controllers
                 .Include(c => c.Modset)
                 .Where(c => c.GameServerID == gameServer.GameServerID).ToListAsync();
             vm.CurrentConfig = currentConfig;
-
+            
             if (gameServer.HostServerID != null)
             {
                 var gameConfig = _service.GetConfig(gameServer);
@@ -286,7 +286,7 @@ namespace GameServerManagerWebApp.Controllers
         // GET: AdminGameServers/Create
         public IActionResult Create()
         {
-            ViewData["HostServerID"] = new SelectList(_context.HostServers, "HostServerID", "HostServerID");
+            ViewData["HostServerID"] = new SelectList(_context.HostServers, "HostServerID", "Name");
             return View();
         }
 
@@ -303,7 +303,7 @@ namespace GameServerManagerWebApp.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["HostServerID"] = new SelectList(_context.HostServers, "HostServerID", "HostServerID", gameServer.HostServerID);
+            ViewData["HostServerID"] = new SelectList(_context.HostServers, "HostServerID", "Name", gameServer.HostServerID);
             return View(gameServer);
         }
 
@@ -320,7 +320,7 @@ namespace GameServerManagerWebApp.Controllers
             {
                 return NotFound();
             }
-            ViewData["HostServerID"] = new SelectList(_context.HostServers, "HostServerID", "HostServerID", gameServer.HostServerID);
+            ViewData["HostServerID"] = new SelectList(_context.HostServers, "HostServerID", "Name", gameServer.HostServerID);
             return View(gameServer);
         }
 
@@ -356,7 +356,7 @@ namespace GameServerManagerWebApp.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["HostServerID"] = new SelectList(_context.HostServers, "HostServerID", "HostServerID", gameServer.HostServerID);
+            ViewData["HostServerID"] = new SelectList(_context.HostServers, "HostServerID", "Name", gameServer.HostServerID);
             return View(gameServer);
         }
 

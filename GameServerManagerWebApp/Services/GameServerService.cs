@@ -126,7 +126,7 @@ namespace GameServerManagerWebApp.Services
                     ConsoleFileDirectory = server.BasePath.TrimEnd('/') + "/profiles",
                     ConsoleFilePrefix = "arma3server_",
                     Command = new[] { "arma3server", "arma3server_x64" },
-                    OtherUsers = server.UserName == "arma3-w" ? new[] { "hc1", "hc2" } : new[] { "hc5", "hc6" }, // TODO: trouver un moyen de gérer ça
+                    OtherUsers = (server.UserName == "arma3-w" || server.UserName == "arma3") ? new[] { "hc1", "hc2" } : new[] { "hc3", "hc4", "hc5", "hc6" }, // TODO: trouver un moyen de gérer ça
                 };
             }
             throw new NotImplementedException();

@@ -1,0 +1,41 @@
+﻿@model GameServerManagerWebApp.Entites.HostServer
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Hôtes</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@ViewData["Title"]</li>
+        </ol>
+    </nav>
+}
+@section Title { <h1><span>@ViewData["Title"]</span></h1> }
+
+<div>
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Name)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Address)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Address)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.SshUserName)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.SshUserName)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.HostServerID">Modifier</a>
+</div>

@@ -35,11 +35,11 @@
                 <td class="text-right">
                     <a class="btn btn-sm btn-outline-secondary" asp-action="FullLog" asp-route-id="@Model.GameServer.GameServerID" asp-fragment="endofpage"><i class="far fa-file-alt"></i> Logs</a>
                     <a class="btn btn-sm btn-outline-secondary" asp-action="Audit" asp-route-id="@Model.GameServer.GameServerID"><i class="fas fa-shield-alt"></i> Audit</a>
-                    @if (Model.Infos.Running)
+                    @if (Model.Infos.Processes.Any())
                     {
                         <button class="btn btn-sm btn-outline-danger" asp-action="Stop" asp-route-id="@Model.GameServer.GameServerID"><i class="fas fa-stop"></i> Arrêter</button>
                     }
-                    else
+                    @if (!Model.Infos.Running)
                     {
                         <button class="btn btn-sm btn-outline-success" asp-action="Start" asp-route-id="@Model.GameServer.GameServerID"><i class="fas fa-play"></i> Démarrer</button>
                     }
@@ -119,10 +119,10 @@
         <tbody>
             <tr>
                 <td colspan="2">
-                    <form class="form-inline" asp-action="UploadMission" asp-route-id="@Model.Infos.Name" enctype="multipart/form-data">
+                    <form class="form-inline" asp-action="UploadMission" asp-route-id="@Model.GameServer.GameServerID" enctype="multipart/form-data">
                         <div class="form-group">
                             <label for="file" class="sr-only">Fichier de mission</label>
-                            <input id="file" name="file" type="file" class="form-control form-control-sm form-control-file" />
+                            <input id="file" name="file" type="file" class="form-control form-control-sm form-control-file" accept=".pbo" />
                         </div>
 
                         <div class="form-group">
@@ -138,7 +138,7 @@
                         @mission
                     </td>
                     <td>
-                        <a class="btn btn-sm btn-outline-secondary" asp-action="DownloadMission" asp-route-id="@Model.Infos.Name" asp-route-mission="@mission">Télécharger</a>
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="DownloadMission" asp-route-id="@Model.GameServer.GameServerID" asp-route-mission="@mission">Télécharger</a>
                     </td>
                 </tr>
             }

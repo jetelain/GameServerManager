@@ -1,0 +1,61 @@
+﻿@model IEnumerable<GameServerManagerWebApp.Entites.HostServer>
+
+@{
+    ViewData["Title"] = "Hôtes";
+}
+
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item active" aria-current="page">@ViewData["Title"]</li>
+        </ol>
+    </nav>
+}
+@section Title { <h1><span>@ViewData["Title"]</span></h1> }
+
+<div class="alert alert-danger" role="alert">
+    <h2>Zone de danger</h2>
+    <p>Des modifications incorrectes dans cette zone peut entrainer des disfonctionnements difficile à corriger.</p>
+</div>
+
+<p>
+    <a class="btn btn-primary" asp-action="Create">Créer un hôte</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Name)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Address)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.SshUserName)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Address)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.SshUserName)
+                </td>
+                <td>
+                    <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@item.HostServerID">Détails</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.HostServerID">Modifier</a>
+                    <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.HostServerID">Supprimer</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
