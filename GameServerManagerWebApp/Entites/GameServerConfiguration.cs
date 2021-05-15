@@ -45,5 +45,8 @@ namespace GameServerManagerWebApp.Entites
         [Display(Name = "Libellé")]
         public string Label { get; set; }
         public DateTime LastChangeUTC { get; set; }
+
+        [Display(Name = "Nom de la sauvegarde (Mod 1erGTD)")]
+        public string GamePersistName { get; set; }
     }
 }

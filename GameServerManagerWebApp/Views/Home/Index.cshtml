@@ -16,6 +16,10 @@
             <tr>
                 <td>
                     <i class="fas fa-server"></i> <a class="font-weight-bold" asp-controller="AdminGameServers" asp-action="Details" asp-route-id="@server.Key.GameServerID">@server.Key.Label</a>
+                    @if (server.Key.ConnectedPlayers > 0)
+                    {
+                        <span class="badge badge-info">@server.Key.ConnectedPlayers connecté(s)</span>
+                    }
                 </td>
                 <td>
                     <a class="btn btn-sm btn-outline-primary" asp-controller="AdminGameServers" asp-action="Details" asp-route-id="@server.Key.GameServerID">Détails</a>

@@ -428,7 +428,7 @@ namespace GameServerManagerWebApp.Services
                 client.Connect();
                 var analyze = AnalyseModsetFile(config, XDocument.Parse(actualModset.DefinitionFile), client);
                 client.Disconnect();
-                if (!analyze.Any(m => m.IsOK))
+                if (analyze.Any(m => !m.IsOK))
                 {
                     return ToErrorMessage(analyze);
                 }
@@ -438,7 +438,7 @@ namespace GameServerManagerWebApp.Services
 
         private string ToErrorMessage(List<SetupArma3Mod> analyze)
         {
-            return string.Join(", ", analyze.Where(e => !e.IsOK).Select(e => e.Message));
+            return string.Join("\r\n ", analyze.Where(e => !e.IsOK).Select(e => e.Message));
         }
 
         private List<SetupArma3Mod> AnalyseModsetFile(GameConfig game, XDocument doc, SftpClient client)
@@ -458,7 +458,7 @@ namespace GameServerManagerWebApp.Services
                     }
                     else
                     {
-                        mods.Add(new SetupArma3Mod() { Id = modSteamId, Name = name, Href = href, IsOK = false, Message = $"Mod '{name}' non installé sur le serveur." });
+                        mods.Add(new SetupArma3Mod() { Id = modSteamId, Name = name, Href = href, IsOK = false, Message = $"Mod '{name}' non installé sur le serveur ({modSteamId})." });
                     }
                 }
                 else

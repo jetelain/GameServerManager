@@ -24,6 +24,8 @@ namespace GameServerManagerWebApp.Entites
 
         public DateTime LastPollUtc { get; set; }
 
+        public int ConnectedPlayers { get; set; }
+
         public List<GameServerSyncedFile> SyncFiles { get; set; }
         public List<GameServerConfiguration> Configurations { get; set; }
     }

@@ -46,6 +46,10 @@
                     {
                         <span class="badge badge-danger">Arrêté</span>
                     }
+                    @if (game.GameServer.ConnectedPlayers > 0)
+                    {
+                        <span class="badge badge-info">@game.GameServer.ConnectedPlayers connecté(s)</span>
+                    }
                 </td>
                 <td><span title="@string.Join(", ", game.Processes.Select(p => $"{p.User} ({p.Cpu}%)"))">@game.Cpu</span></td>
                 <td><span title="@string.Join(", ", game.Processes.Select(p => $"{p.User} ({p.Mem}%)"))">@game.Mem</span></td>

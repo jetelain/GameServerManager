@@ -29,6 +29,10 @@
                     {
                         <span class="badge badge-danger">Arrêté</span>
                     }
+                    @if (Model.GameServer.ConnectedPlayers > 0)
+                    {
+                        <span class="badge badge-info">@Model.GameServer.ConnectedPlayers connecté(s)</span>
+                    }
                 </td>
                 <td><span title="@string.Join(", ", Model.Infos.Processes.Select(p => $"{p.User} ({p.Cpu}%)"))">@Model.Infos.Cpu% CPU</span></td>
                 <td><span title="@string.Join(", ", Model.Infos.Processes.Select(p => $"{p.User} ({p.Mem}%)"))">@Model.Infos.Mem% Mémoire</span></td>

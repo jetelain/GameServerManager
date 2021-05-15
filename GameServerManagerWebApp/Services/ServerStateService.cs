@@ -17,9 +17,9 @@ namespace GameServerManagerWebApp.Services
 {
     public class ServerStateService
     {
-        private static readonly Regex LineRegex = new Regex("([0-9]{4})/([ 0-9]{1,2})/([ 0-9]{1,2}), ([ 0-9]{2}):([ 0-9]{2}):([ 0-9]{2}) (.*)", RegexOptions.Compiled);
-        private static readonly Regex ConnectRegex = new Regex(@"\[GTD\] \(persistence\) INFO: (Restore Player|Saved) .*uid=([0-9]+) ", RegexOptions.Compiled);
-        private static readonly Regex SteamIdQuotedRegex = new Regex(@"""([0-9]{17})""", RegexOptions.Compiled);
+        private static readonly Regex ArmaLineRegex = new Regex("([0-9]{4})/([ 0-9]{1,2})/([ 0-9]{1,2}), ([ 0-9]{2}):([ 0-9]{2}):([ 0-9]{2}) (.*)", RegexOptions.Compiled);
+        private static readonly Regex ArmaConnectRegex = new Regex(@"\[GTD\] \(persistence\) INFO: (Restore Player|Saved) .*uid=([0-9]+) ", RegexOptions.Compiled);
+        private static readonly Regex AramaSteamIdQuotedRegex = new Regex(@"""([0-9]{17})""", RegexOptions.Compiled);
 
         private readonly ILogger<ServerStateService> _logger;
         private readonly GameServerManagerContext _context;
@@ -154,7 +154,10 @@ namespace GameServerManagerWebApp.Services
             {
                 if (!isPolling)
                 {
-                    foreach (var server in await _context.GameServers.Include(s => s.HostServer).Where(s => s.LastPollUtc < DateTime.UtcNow.AddMinutes(-1)).ToListAsync())
+                    foreach (var server in await _context.GameServers
+                        .Include(s => s.HostServer)
+                        .Where(s => s.LastPollUtc < DateTime.UtcNow.AddMinutes(-1) && s.Type == GameServerType.Arma3)
+                        .ToListAsync())
                     {
                         var game = _service.GetConfig(server);
                         if (game != null)
@@ -188,7 +191,7 @@ namespace GameServerManagerWebApp.Services
                     var known = await _context.GameLogFiles.FirstOrDefaultAsync(f => f.GameServerID == server.GameServerID && f.Filename == actualFile.Name);
                     if (known == null || known.ReadSize < actualFile.Length || known.LastSyncUTC < actualFile.LastWriteTimeUtc)
                     {
-                        await ProcessLogFile(server, client, actualFile, known ?? new GameLogFile() { Server = server, Filename = actualFile.Name, UnreadData = "" });
+                        await ProcessArmaLogFile(server, client, actualFile, known ?? new GameLogFile() { Server = server, Filename = actualFile.Name, UnreadData = "" });
                     }
                 }
 
@@ -196,11 +199,13 @@ namespace GameServerManagerWebApp.Services
             }
 
             server.LastPollUtc = DateTime.UtcNow;
+            server.ConnectedPlayers = await _context.GameLogEvents.CountAsync(e => e.Type == GameLogEventType.Connect && !e.IsFinished && e.GameServerID == server.GameServerID);
+
             _context.Update(server);
             await _context.SaveChangesAsync();
         }
 
-        private async Task ProcessLogFile(GameServer server, SftpClient client, SftpFile actualFile, GameLogFile logFileInfos)
+        private async Task ProcessArmaLogFile(GameServer server, SftpClient client, SftpFile actualFile, GameLogFile logFileInfos)
         {
             var data = await ReadData(client, actualFile, logFileInfos);
             logFileInfos.LastSyncUTC = DateTime.UtcNow;
@@ -220,7 +225,7 @@ namespace GameServerManagerWebApp.Services
             var lineMatch = 0;
             foreach (var line in data.Split("\r\n"))
             {
-                var match = LineRegex.Match(line);
+                var match = ArmaLineRegex.Match(line);
                 if (match.Success)
                 {
                     lineMatch++;
@@ -236,7 +241,7 @@ namespace GameServerManagerWebApp.Services
                     }
                     else if( lineData.StartsWith("OPC DATA") || lineData.StartsWith("OPD DATA"))
                     {
-                        var ev = SteamIdQuotedRegex.Match(lineData);
+                        var ev = AramaSteamIdQuotedRegex.Match(lineData);
                         if (ev.Success)
                         {
                             var evData = new GameLogEvent()
@@ -251,7 +256,7 @@ namespace GameServerManagerWebApp.Services
                     }
                     else if (lineData.StartsWith("[GTD] (persistence)"))
                     {
-                        var ev = ConnectRegex.Match(lineData);
+                        var ev = ArmaConnectRegex.Match(lineData);
                         if (ev.Success)
                         {
                             var evData = new GameLogEvent()
