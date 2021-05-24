@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using System.Linq;
+using AspNetCore.Authentication.ApiKey;
 using GameServerManagerWebApp.Entites;
+using GameServerManagerWebApp.Security;
 using GameServerManagerWebApp.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
@@ -44,7 +46,12 @@ namespace GameServerManagerWebApp
                     options.LogoutPath = "/Authentication/SignOut";
                     options.AccessDeniedPath = "/Authentication/Denied";
                 })
-                .AddSteam(s => s.ApplicationKey = Configuration.GetValue<string>("Steam:Key"));
+                .AddSteam(s => s.ApplicationKey = Configuration.GetValue<string>("Steam:Key"))
+                .AddApiKeyInAuthorizationHeader<ApiKeyProvider>("API", options =>
+                {
+                    options.SuppressWWWAuthenticateHeader = true;
+                    options.KeyName = "ApiKey";
+                });
 
             services.AddAuthorization(options =>
             {
@@ -53,7 +60,8 @@ namespace GameServerManagerWebApp
                     "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
                     admins.Select(steamid => "https://steamcommunity.com/openid/id/" + steamid).ToArray())
                 );
-            });
+                options.AddPolicy("ApiClient", policy => { policy.RequireAuthenticatedUser(); policy.AddAuthenticationSchemes("API"); });
+            }); 
 
             services.AddHostedService<ServerStateWorker>();
 
@@ -92,6 +100,7 @@ namespace GameServerManagerWebApp
 
             app.UseAuthentication();
             app.UseAuthorization();
+
 
             app.UseCookiePolicy(new CookiePolicyOptions()
             {

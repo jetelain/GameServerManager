@@ -336,10 +336,19 @@ namespace GameServerManagerWebApp.Services
             }
         }
 
+        private const int maxRead = 1024 * 1024 * 10;
+
         private static async Task<string> ReadData(SftpFileStream stream)
         {
+            var dataToRead = stream.Length - stream.Position;
             using (var reader = new StreamReader(stream, leaveOpen: true))
             {
+                if (dataToRead > maxRead)
+                {
+                    var buffer = new char[maxRead];
+                    var read = await reader.ReadAsync(buffer, 0, maxRead);
+                    return new string(buffer, 0, read);
+                }
                 return await reader.ReadToEndAsync();
             }
         }

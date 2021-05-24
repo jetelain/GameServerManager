@@ -22,7 +22,7 @@ namespace GameServerManagerWebApp.Controllers
             _context = context;
         }
 
-        [Authorize(Policy = "Admin")]
+        [Authorize(Policy = "ApiClient")]
         public async Task<IActionResult> Get()
         {
             var list = await _context.GameServerConfigurations
