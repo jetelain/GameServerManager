@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using GameServerManagerWebApp.Entites;
 
 namespace GameServerManagerWebApp.Entites
 {
@@ -41,5 +42,7 @@ namespace GameServerManagerWebApp.Entites
             }
             SaveChanges();
         }
+
+        public DbSet<GameServerManagerWebApp.Entites.GameServerSyncedFile> GameServerSyncedFile { get; set; }
     }
 }

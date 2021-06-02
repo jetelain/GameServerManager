@@ -193,6 +193,8 @@ namespace GameServerManagerWebApp.Services
             await ApplyAllConfiguration(currentConfig, GetConfig(currentConfig.GameServer));
         }
 
+
+
         private async Task ApplyAllConfiguration(GameServerConfiguration currentConfig, GameConfig game)
         {
             if (!currentConfig.IsActive || currentConfig.GameServer.SyncFiles.Count > 0)
@@ -206,7 +208,7 @@ namespace GameServerManagerWebApp.Services
                     }
                     if (currentConfig.GameServer.SyncFiles.Count > 0)
                     {
-                        await UpdateSyncedFiles(currentConfig, game, client);
+                        await UpdateSyncedFiles(currentConfig.GameServer, game, client);
                     }
                     client.Disconnect();
                 }
@@ -246,9 +248,20 @@ namespace GameServerManagerWebApp.Services
             await _context.SaveChangesAsync();
         }
 
-        private async Task UpdateSyncedFiles(GameServerConfiguration currentConfig, GameConfig game, SftpClient client)
+        internal async Task UpdateSyncedFiles(GameServer server)
         {
-            foreach (var syncFile in currentConfig.GameServer.SyncFiles)
+            var game = GetConfig(server);
+            using (var client = GetSftpClient(server.HostServer))
+            {
+                client.Connect();
+                await UpdateSyncedFiles(server, game, client);
+                client.Disconnect();
+            }
+        }
+
+        private async Task UpdateSyncedFiles(GameServer server, GameConfig game, SftpClient client)
+        {
+            foreach (var syncFile in server.SyncFiles)
             {
                 var content = await GetSyncContent(syncFile);
                 if (syncFile.Content != content)
