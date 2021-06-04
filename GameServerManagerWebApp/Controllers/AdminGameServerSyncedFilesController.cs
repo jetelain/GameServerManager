@@ -28,7 +28,7 @@ namespace GameServerManagerWebApp.Controllers
                 return NotFound();
             }
 
-            var gameServerSyncedFile = await _context.GameServerSyncedFile
+            var gameServerSyncedFile = await _context.GameServerSyncedFiles
                 .Include(g => g.GameServer)
                 .FirstOrDefaultAsync(m => m.GameServerSyncedFileID == id);
             if (gameServerSyncedFile == null)
@@ -75,7 +75,7 @@ namespace GameServerManagerWebApp.Controllers
                 return NotFound();
             }
 
-            var gameServerSyncedFile = await _context.GameServerSyncedFile
+            var gameServerSyncedFile = await _context.GameServerSyncedFiles
                 .Include(g => g.GameServer)
                 .FirstOrDefaultAsync(m => m.GameServerSyncedFileID == id);
             if (gameServerSyncedFile == null)
@@ -131,7 +131,7 @@ namespace GameServerManagerWebApp.Controllers
                 return NotFound();
             }
 
-            var gameServerSyncedFile = await _context.GameServerSyncedFile
+            var gameServerSyncedFile = await _context.GameServerSyncedFiles
                 .Include(g => g.GameServer)
                 .FirstOrDefaultAsync(m => m.GameServerSyncedFileID == id);
             if (gameServerSyncedFile == null)
@@ -147,15 +147,15 @@ namespace GameServerManagerWebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var gameServerSyncedFile = await _context.GameServerSyncedFile.FindAsync(id);
-            _context.GameServerSyncedFile.Remove(gameServerSyncedFile);
+            var gameServerSyncedFile = await _context.GameServerSyncedFiles.FindAsync(id);
+            _context.GameServerSyncedFiles.Remove(gameServerSyncedFile);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(AdminGameServersController.Details), "AdminGameServers", new { id = gameServerSyncedFile.GameServerID });
         }
 
         private bool GameServerSyncedFileExists(int id)
         {
-            return _context.GameServerSyncedFile.Any(e => e.GameServerSyncedFileID == id);
+            return _context.GameServerSyncedFiles.Any(e => e.GameServerSyncedFileID == id);
         }
     }
 }

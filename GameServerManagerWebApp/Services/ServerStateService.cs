@@ -4,9 +4,11 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Arma3ServerToolbox.ArmaPersist;
 using GameServerManagerWebApp.Entites;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -25,6 +27,7 @@ namespace GameServerManagerWebApp.Services
         private readonly GameServerManagerContext _context;
         private readonly GameServerService _service;
         private static int pollingLock = 0;
+        private static int snapshotLock = 0;
 
         public ServerStateService(ILogger<ServerStateService> logger, GameServerManagerContext context, GameServerService service)
         {
@@ -41,6 +44,7 @@ namespace GameServerManagerWebApp.Services
             }
             return await _context.GameLogEvents.Include(e => e.Server).Where(p => p.Type == GameLogEventType.Connect && !p.IsFinished).ToListAsync();
         }
+
         public async Task<List<GameLogEvent>> GetConnectedPlayersInThePast(DateTime dt)
         {
             var min = dt.AddDays(-2);
@@ -50,39 +54,53 @@ namespace GameServerManagerWebApp.Services
                 .Where(p => !p.IsFinished || dt < p.Timestamp + p.Duration)
                 .ToList();
         }
-        /*
-        public async Task UpdateInventory()
+        
+        public async Task TakePersistSnapshots()
         {
-            foreach (var server in await _context.Servers.ToListAsync())
+            var sw = Stopwatch.StartNew();
+            var isSnapshotInProgress = Interlocked.Increment(ref snapshotLock) > 1;
+            try
             {
-                var game = _service.Games.FirstOrDefault(g => g.Name == server.Name);
-                if (game != null)
+                if (!isSnapshotInProgress)
                 {
-                    await Inventory(server, game);
+                    foreach (var server in await _context.GameServers.Where(g => g.Type == GameServerType.Arma3).Include(s => s.HostServer).ToListAsync())
+                    {
+                        await TakePersistSnapshots(server, _service.GetConfig(server));
+                    }
                 }
             }
-        }
-        private async Task Inventory(GameServer server, GameConfig config)
-        {
-            var latsInv = await _context.Inventories.OrderByDescending(i => i.Timestamp).FirstOrDefaultAsync(i => i.GameServerID == server.GameServerID);
-
-            var backup = DownloadBackup(server, config, latsInv?.Timestamp ?? DateTime.MinValue);
-
-            if (backup != null)
+            finally
             {
-                var inv = new GameInventory() { Timestamp = backup.LastChange, Server = server, Backup = JsonSerializer.Serialize(backup) };
-                _context.Inventories.Add(inv);
-                await _context.SaveChangesAsync();
+                Interlocked.Decrement(ref snapshotLock);
+            }
+            _logger.LogInformation("Snapshot took {0} msec, isSnapshotInProgress: {1}", sw.ElapsedMilliseconds, isSnapshotInProgress);
 
+        }
+        private async Task TakePersistSnapshots(GameServer server, GameConfig config)
+        {
+            var latsInvTimestamp = await _context.GamePersistSnapshots.Where(i => i.GameServerID == server.GameServerID).MaxAsync(i => i.Timestamp);
+
+            foreach(var backup in DownloadBackup(config, latsInvTimestamp))
+            { 
+                var inv = new GamePersistSnapshot() 
+                { 
+                    Timestamp = backup.LastChange, 
+                    GameServer = server, 
+                    Backup = JsonSerializer.Serialize(backup),
+                    GamePersistName = backup.Name
+                };
+                _context.GamePersistSnapshots.Add(inv);
+                await _context.SaveChangesAsync();
+                /*
                 var countByItem = backup.Boxes.SelectMany(b => b.Items).GroupBy(i => i.Name).Select(i => new PersistItem(i.Key, i.Sum(j => j.Count))).ToList();
-                foreach(var entry in countByItem)
+                foreach (var entry in countByItem)
                 {
-                    _context.InventoryItems.Add(new GameInventoryItem() { Inventory = inv, Item = await GetItem(entry.Name), Count = (int)entry.Count });
+                    _context.InventoryItems.Add(new GameInventoryItem() { Snapshot = inv, Item = await GetItem(entry.Name), Count = (int)entry.Count });
                 }
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();*/
             }
         }
-
+        /*
         private async Task<GameItem> GetItem(string name)
         {
             var item = await _context.Items.FirstOrDefaultAsync(i => i.Name == name);
@@ -118,34 +136,32 @@ namespace GameServerManagerWebApp.Services
                 {
                     item.GroupWeight = 10;
                 }
-                if (name.Contains("Rnd_"))
-                {
-                    item.Warehouse = Warehouse.Munitions;
-                }
                 _context.Items.Add(item);
                 await _context.SaveChangesAsync();
             }
             return item;
         }
-
-        private PersistBackup DownloadBackup(GameServer server, GameConfig config, DateTime last)
+        */
+        private List<PersistBackup> DownloadBackup(GameConfig config, DateTime last)
         {
-            PersistBackup backup = null;
+            List<PersistBackup> backup = new List<PersistBackup>();
             using (var client = _service.GetSftpClient(config.Server))
             {
                 client.Connect();
                 var file = config.ConsoleFileDirectory + "/Users/server/server.vars.Arma3Profile";
-                var dt = client.GetLastWriteTimeUtc(config.ConsoleFileDirectory + "/Users/server/server.vars.Arma3Profile");
-                if (dt > last)
+                if (client.Exists(file))
                 {
-                    var bytes = client.ReadAllBytes(config.ConsoleFileDirectory + "/Users/server/server.vars.Arma3Profile");
-                    var backups = PersistBackup.Read(new MemoryStream(bytes), dt, server.Name);
-                    backup = backups.FirstOrDefault();
+                    var dt = client.GetLastWriteTimeUtc(file);
+                    if (dt > last)
+                    {
+                        var bytes = client.ReadAllBytes(file);
+                        backup = PersistBackup.Read(new MemoryStream(bytes), dt);
+                    }
                 }
                 client.Disconnect();
             }
             return backup;
-        }*/
+        }
         public async Task Poll()
         {
             var sw = Stopwatch.StartNew();

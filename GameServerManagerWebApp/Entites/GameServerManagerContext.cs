@@ -11,13 +11,15 @@ namespace GameServerManagerWebApp.Entites
         {
         }
 
-        public DbSet<HostServer> HostServers { get; internal set; }
-        public DbSet<GameServer> GameServers { get; internal set; }
-        public DbSet<GameConfigurationFile> GameConfigurationFiles { get; internal set; }
-        public DbSet<GameServerConfiguration> GameServerConfigurations { get; internal set; }
-        public DbSet<Modset> Modsets { get; internal set; }
+        public DbSet<HostServer> HostServers { get; set; }
+        public DbSet<GameServer> GameServers { get; set; }
+        public DbSet<GameConfigurationFile> GameConfigurationFiles { get; set; }
+        public DbSet<GameServerConfiguration> GameServerConfigurations { get; set; }
+        public DbSet<Modset> Modsets { get; set; }
         public DbSet<GameLogEvent> GameLogEvents { get; set; }
         public DbSet<GameLogFile> GameLogFiles { get; set; }
+        public DbSet<GameServerSyncedFile> GameServerSyncedFiles { get; set; }
+        public DbSet<GamePersistSnapshot> GamePersistSnapshots { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -29,6 +31,7 @@ namespace GameServerManagerWebApp.Entites
             modelBuilder.Entity<GameLogEvent>().ToTable(nameof(GameLogEvent));
             modelBuilder.Entity<GameLogFile>().ToTable(nameof(GameLogFile));
             modelBuilder.Entity<GameServerSyncedFile>().ToTable(nameof(GameServerSyncedFile));
+            modelBuilder.Entity<GamePersistSnapshot>().ToTable(nameof(GamePersistSnapshot));
         }
 
         internal void InitBaseData()
@@ -43,6 +46,5 @@ namespace GameServerManagerWebApp.Entites
             SaveChanges();
         }
 
-        public DbSet<GameServerManagerWebApp.Entites.GameServerSyncedFile> GameServerSyncedFile { get; set; }
     }
 }

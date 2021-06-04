@@ -143,7 +143,7 @@ namespace GameServerManagerWebApp.Controllers
             vm.GameServer.Configurations = await _context.GameServerConfigurations
                 .Include(c => c.Modset)
                 .Where(c => c.GameServerID == gameServer.GameServerID).ToListAsync();
-            vm.GameServer.SyncFiles = await _context.GameServerSyncedFile
+            vm.GameServer.SyncFiles = await _context.GameServerSyncedFiles
                 .Include(c => c.GameServer)
                 .Where(c => c.GameServerID == gameServer.GameServerID).ToListAsync();
             vm.CurrentConfig = currentConfig;

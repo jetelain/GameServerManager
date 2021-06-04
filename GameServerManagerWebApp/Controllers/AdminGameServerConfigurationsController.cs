@@ -108,6 +108,7 @@ namespace GameServerManagerWebApp.Controllers
                 copy.VoipChannel = gsc.VoipChannel;
                 copy.VoipPassword = gsc.VoipPassword;
                 copy.EventHref = gsc.EventHref;
+                copy.GamePersistName = gsc.GamePersistName;
                 copy.EventImage = gsc.EventImage;
                 copy.ModsetID = gsc.ModsetID;
                 copy.Label = gsc.Label;
@@ -264,6 +265,7 @@ namespace GameServerManagerWebApp.Controllers
                     existing.VoipPassword = gsc.VoipPassword;
                     existing.EventHref = gsc.EventHref;
                     existing.EventImage = gsc.EventImage;
+                    existing.GamePersistName = gsc.GamePersistName;
                     existing.Label = gsc.Label;
                     _context.Update(existing);
                     await _context.SaveChangesAsync();
