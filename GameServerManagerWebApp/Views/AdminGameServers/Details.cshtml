@@ -90,12 +90,12 @@
                         else
                         {
                             @*if (Model.Infos.Running)
-                            {
-                                <button class="btn btn-sm btn-outline-success" asp-action="StartWithConfig" asp-route-id="@config.GameServerConfigurationID"><i class="fas fa-play"></i> Démarrer</button>
-                            }
-                            else
-                            {*@
-                                <button class="btn btn-sm btn-outline-success" asp-action="ApplyConfig" asp-route-id="@config.GameServerConfigurationID">Activer</button>
+                                {
+                                    <button class="btn btn-sm btn-outline-success" asp-action="StartWithConfig" asp-route-id="@config.GameServerConfigurationID"><i class="fas fa-play"></i> Démarrer</button>
+                                }
+                                else
+                                {*@
+                            <button class="btn btn-sm btn-outline-success" asp-action="ApplyConfig" asp-route-id="@config.GameServerConfigurationID">Activer</button>
                             @*}*@
                         }
                         <a class="btn btn-sm btn-outline-primary" asp-controller="AdminGameServerConfigurations" asp-action="Details" asp-route-id="@config.GameServerConfigurationID">Détails</a>
@@ -150,6 +150,49 @@
     </table>
 
 }
+
+<h1>Fichiers synchronisés</h1>
+<p>
+    <a class="btn btn-sm btn-outline-primary" asp-action="Create" asp-controller="AdminGameServerSyncedFiles" asp-route-gameServerID="@Model.GameServer.GameServerID">Ajouter un fichier synchronisé</a>
+    <a class="btn btn-sm btn-outline-secondary" asp-action="UpdateSyncedFiles" asp-route-id="@Model.GameServer.GameServerID">Synchroniser maintenant</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.GameServer.SyncFiles[0].Path)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.GameServer.SyncFiles[0].SyncUri)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.GameServer.SyncFiles[0].LastChangeUTC)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.GameServer.SyncFiles)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Path)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.SyncUri)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.LastChangeUTC)
+                </td>
+                <td>
+                    <a class="btn btn-sm btn-outline-primary" asp-controller="AdminGameServerSyncedFiles" asp-action="Edit" asp-route-id="@item.GameServerSyncedFileID">Modifier</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-controller="AdminGameServerSyncedFiles" asp-action="Details" asp-route-id="@item.GameServerSyncedFileID">Détails</a>
+                    <a class="btn btn-sm btn-outline-danger" asp-controller="AdminGameServerSyncedFiles" asp-action="Delete" asp-route-id="@item.GameServerSyncedFileID">Supprimer</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
 
 <h2>Données techniques</h2>
 <p>

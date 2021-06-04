@@ -143,6 +143,9 @@ namespace GameServerManagerWebApp.Controllers
             vm.GameServer.Configurations = await _context.GameServerConfigurations
                 .Include(c => c.Modset)
                 .Where(c => c.GameServerID == gameServer.GameServerID).ToListAsync();
+            vm.GameServer.SyncFiles = await _context.GameServerSyncedFiles
+                .Include(c => c.GameServer)
+                .Where(c => c.GameServerID == gameServer.GameServerID).ToListAsync();
             vm.CurrentConfig = currentConfig;
             
             if (gameServer.HostServerID != null)
@@ -170,6 +173,20 @@ namespace GameServerManagerWebApp.Controllers
             return View(vm);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> UpdateSyncedFiles(int id)
+        {
+            var gameServer = _context.GameServers
+                .Include(s => s.SyncFiles)
+                .Include(s => s.HostServer)
+                .FirstOrDefault(g => g.GameServerID == id);
+            if (gameServer == null)
+            {
+                return NotFound();
+            }
+            await _service.UpdateSyncedFiles(gameServer);
+            return RedirectToAction(nameof(Details), new { id });
+        }
 
         private string GetLog(GameConfig game, SftpClient client)
         {

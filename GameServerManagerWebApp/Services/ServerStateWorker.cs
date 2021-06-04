@@ -46,21 +46,21 @@ namespace GameServerManagerWebApp.Services
                     _logger.LogError(e, "Poll failed.");
                 }
             }
-            //if (h == 6 && DateTime.Now.Minute < 11)
-            //{
-            //    _logger.LogInformation("Update inventory.");
-            //    try
-            //    {
-            //        using (var scope = _scopeFactory.CreateScope())
-            //        {
-            //            scope.ServiceProvider.GetRequiredService<ServerStateService>().UpdateInventory().Wait();
-            //        }
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        _logger.LogError(e, "Inventory failed.");
-            //    }
-            //}
+            if (h == 6 && DateTime.Now.Minute < 11)
+            {
+                _logger.LogInformation("Update inventory.");
+                try
+                {
+                    using (var scope = _scopeFactory.CreateScope())
+                    {
+                        scope.ServiceProvider.GetRequiredService<ServerStateService>().TakePersistSnapshots().Wait();
+                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Inventory failed.");
+                }
+            }
         }
 
         public Task StopAsync(CancellationToken stoppingToken)
