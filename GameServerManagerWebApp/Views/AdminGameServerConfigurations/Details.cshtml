@@ -59,40 +59,41 @@
         </dd>
     </dl>
 </div>
-
-<h2>Configuration rapide</h2>
-<p>
-    <a class="btn btn-sm btn-outline-primary" asp-action="EditConfig" asp-route-id="@Model.GameServerConfigurationID">Modifier</a>
-</p>
-<div>
-    <dl class="row">
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.ServerName)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.ServerName)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.ServerPassword)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.ServerPassword)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.ServerMission)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.ServerMission)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Modset)
-        </dt>
-        <dd class="col-sm-10">
-            @Model.Modset?.Name <span class="badge badge-primary">@Model.Modset?.Count</span>
-        </dd>
-    </dl>
-</div>
-
+@if (Model.GameServer.Type == GameServerType.Arma3)
+{
+    <h2>Configuration rapide</h2>
+    <p>
+        <a class="btn btn-sm btn-outline-primary" asp-action="EditConfig" asp-route-id="@Model.GameServerConfigurationID">Modifier</a>
+    </p>
+    <div>
+        <dl class="row">
+            <dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.ServerName)
+            </dt>
+            <dd class="col-sm-10">
+                @Html.DisplayFor(model => model.ServerName)
+            </dd>
+            <dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.ServerPassword)
+            </dt>
+            <dd class="col-sm-10">
+                @Html.DisplayFor(model => model.ServerPassword)
+            </dd>
+            <dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.ServerMission)
+            </dt>
+            <dd class="col-sm-10">
+                @Html.DisplayFor(model => model.ServerMission)
+            </dd>
+            <dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.Modset)
+            </dt>
+            <dd class="col-sm-10">
+                @Model.Modset?.Name <span class="badge badge-primary">@Model.Modset?.Count</span>
+            </dd>
+        </dl>
+    </div>
+}
 <h2>Configuration avancée</h2>
 
 <table class="table">

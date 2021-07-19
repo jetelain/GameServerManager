@@ -185,24 +185,27 @@ namespace GameServerManagerWebApp.Controllers
         private async Task<IEnumerable<GameConfigurationFile>> ApplyEditConfig(List<GameConfigurationFile> files, GameServerConfiguration oldValue, GameServerConfiguration newValue)
         {
             var updated = new HashSet<GameConfigurationFile>();
-            var serverCfg = files.First(f => f.Path == "server.cfg");
-            if (oldValue.ServerName != newValue.ServerName)
+            if (newValue.GameServer.Type == GameServerType.Arma3)
             {
-                updated.Add(ApplyUpdate(serverCfg, GameServerService.LabelRegex, newValue.ServerName));
-            }
-            if (oldValue.ServerPassword != newValue.ServerPassword)
-            {
-                updated.Add(ApplyUpdate(serverCfg, GameServerService.PasswordRegex, newValue.ServerPassword));
-            }
-            if (oldValue.ServerMission != newValue.ServerMission)
-            {
-                updated.Add(ApplyUpdate(serverCfg, GameServerService.MissionRegex, newValue.ServerMission));
-            }
-            if (oldValue.ModsetID != newValue.ModsetID)
-            {
-                var mods = files.First(f => f.Path == "mods.txt");
-                mods.Content = (await _context.Modsets.FindAsync(newValue.ModsetID)).ConfigurationFile;
-                updated.Add(mods);
+                var serverCfg = files.First(f => f.Path == "server.cfg");
+                if (oldValue.ServerName != newValue.ServerName)
+                {
+                    updated.Add(ApplyUpdate(serverCfg, GameServerService.LabelRegex, newValue.ServerName));
+                }
+                if (oldValue.ServerPassword != newValue.ServerPassword)
+                {
+                    updated.Add(ApplyUpdate(serverCfg, GameServerService.PasswordRegex, newValue.ServerPassword));
+                }
+                if (oldValue.ServerMission != newValue.ServerMission)
+                {
+                    updated.Add(ApplyUpdate(serverCfg, GameServerService.MissionRegex, newValue.ServerMission));
+                }
+                if (oldValue.ModsetID != newValue.ModsetID)
+                {
+                    var mods = files.First(f => f.Path == "mods.txt");
+                    mods.Content = (await _context.Modsets.FindAsync(newValue.ModsetID)).ConfigurationFile;
+                    updated.Add(mods);
+                }
             }
             return updated;
         }

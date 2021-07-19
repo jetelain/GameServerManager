@@ -129,6 +129,40 @@ namespace GameServerManagerWebApp.Services
                     OtherUsers = (server.UserName == "arma3-w" || server.UserName == "arma3") ? new[] { "hc1", "hc2" } : new[] { "hc3", "hc4", "hc5", "hc6" }, // TODO: trouver un moyen de gérer ça
                 };
             }
+
+            if (server.Type == GameServerType.Squad)
+            {
+                return new GameConfig()
+                {
+                    Server = server.HostServer,
+                    Name = server.UserName + "@" + server.HostServer.Name,
+                    TopUserName = TopTruncate(server.UserName),
+                    StartCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/start.sh",
+                    StopCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/stop.sh",
+                    ConfigFiles = new[]{
+                        "SquadGame/ServerConfig/Admins.cfg",
+                        "SquadGame/ServerConfig/Bans.cfg",
+                        "SquadGame/ServerConfig/CustomOptions.cfg",
+                        "SquadGame/ServerConfig/ExcludedFactions.cfg",
+                        "SquadGame/ServerConfig/ExcludedFactionSetups.cfg",
+                        "SquadGame/ServerConfig/ExcludedLayers.cfg",
+                        "SquadGame/ServerConfig/ExcludedLevels.cfg",
+                        "SquadGame/ServerConfig/LayerRotation.cfg",
+                        "SquadGame/ServerConfig/LevelRotation.cfg",
+                        "SquadGame/ServerConfig/MOTD.cfg",
+                        "SquadGame/ServerConfig/Rcon.cfg",
+                        "SquadGame/ServerConfig/Server.cfg",
+                        "SquadGame/ServerConfig/ServerMessages.cfg",
+                        "SquadGame/ServerConfig/VoteConfig.cfg"
+                    },
+                    // MissionDirectory = server.BasePath.TrimEnd('/') + "/mpmissions",
+                    GameBaseDirectory = server.BasePath.TrimEnd('/'),
+                    ConsoleFileDirectory = server.BasePath.TrimEnd('/') + "/SquadGame/Saved/Logs",
+                    ConsoleFilePrefix = "",
+                    Command = new[] { "SquadGameServer",},
+                    OtherUsers = new string[0]
+                };
+            } ///home/squad/.steam/steamcmd/server/
             throw new NotImplementedException();
         }
 
@@ -372,11 +406,14 @@ namespace GameServerManagerWebApp.Services
             }
             else if (currentConfig.Modset == null)
             {
-                await UpdateModset(currentConfig);
-                if (currentConfig.Modset != null)
+                if (currentConfig.GameServer.Type == GameServerType.Arma3)
                 {
-                    _context.GameServerConfigurations.Update(currentConfig);
-                    await _context.SaveChangesAsync();
+                    await UpdateModset(currentConfig);
+                    if (currentConfig.Modset != null)
+                    {
+                        _context.GameServerConfigurations.Update(currentConfig);
+                        await _context.SaveChangesAsync();
+                    }
                 }
             }
         }
