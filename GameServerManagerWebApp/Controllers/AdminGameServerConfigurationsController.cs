@@ -488,7 +488,7 @@ namespace GameServerManagerWebApp.Controllers
                 return NotFound();
             }
 
-            file.Content = editFile.Content;
+            file.Content = editFile.Content ?? string.Empty;
 
             _context.GameConfigurationFiles.Update(file);
 
@@ -501,7 +501,7 @@ namespace GameServerManagerWebApp.Controllers
                 using (var client = _service.GetSftpClient(file.Configuration.GameServer.HostServer))
                 {
                     client.Connect();
-                    _service.WriteAllText(client, _service.GetFileFullPath(_service.GetConfig(file.Configuration.GameServer), file.Path), file.Content);
+                    _service.WriteAllText(client, _service.GetFileFullPath(_service.GetConfig(file.Configuration.GameServer), file.Path), file.Content ?? string.Empty);
                     client.Disconnect();
                 }
             }
