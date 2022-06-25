@@ -255,36 +255,52 @@ namespace GameServerManagerWebApp.Services
                         }
                         playerConnectEvents = new Dictionary<string, GameLogEvent>();
                     }
-                    else if( lineData.StartsWith("OPC DATA") || lineData.StartsWith("OPD DATA"))
+                    else if (lineData.StartsWith("MP::C ") || lineData.StartsWith("MP::D "))
                     {
-                        var ev = AramaSteamIdQuotedRegex.Match(lineData);
-                        if (ev.Success)
+                        var tokens = lineData.Substring(6).Split('|');
+                        if (tokens.Length == 2 && tokens[0].Length > 15)
                         {
                             var evData = new GameLogEvent()
                             {
                                 Timestamp = ParseDateTime(match),
-                                SteamId = ev.Groups[1].Value,
+                                SteamId = tokens[0],
                                 Server = server,
-                                Type = lineData.StartsWith("OPD DATA") ? GameLogEventType.Disconnect : GameLogEventType.Connect
+                                Type = lineData.StartsWith("MP::D ") ? GameLogEventType.Disconnect : GameLogEventType.Connect,
+                                PlayerName = tokens[1]
                             };
                             PlayerEvent(playerConnectEvents, evData);
                         }
                     }
-                    else if (lineData.StartsWith("[GTD] (persistence)"))
-                    {
-                        var ev = ArmaConnectRegex.Match(lineData);
-                        if (ev.Success)
-                        {
-                            var evData = new GameLogEvent()
-                            {
-                                Timestamp = ParseDateTime(match),
-                                SteamId = ev.Groups[2].Value,
-                                Server = server,
-                                Type = ev.Groups[1].Value == "Saved" ? GameLogEventType.Disconnect : GameLogEventType.Connect
-                            };
-                            PlayerEvent(playerConnectEvents, evData);
-                        }
-                    }
+                    //else if( lineData.StartsWith("OPC DATA") || lineData.StartsWith("OPD DATA"))
+                    //{
+                    //    var ev = AramaSteamIdQuotedRegex.Match(lineData);
+                    //    if (ev.Success)
+                    //    {
+                    //        var evData = new GameLogEvent()
+                    //        {
+                    //            Timestamp = ParseDateTime(match),
+                    //            SteamId = ev.Groups[1].Value,
+                    //            Server = server,
+                    //            Type = lineData.StartsWith("OPD DATA") ? GameLogEventType.Disconnect : GameLogEventType.Connect
+                    //        };
+                    //        PlayerEvent(playerConnectEvents, evData);
+                    //    }
+                    //}
+                    //else if (lineData.StartsWith("[GTD] (persistence)"))
+                    //{
+                    //    var ev = ArmaConnectRegex.Match(lineData);
+                    //    if (ev.Success)
+                    //    {
+                    //        var evData = new GameLogEvent()
+                    //        {
+                    //            Timestamp = ParseDateTime(match),
+                    //            SteamId = ev.Groups[2].Value,
+                    //            Server = server,
+                    //            Type = ev.Groups[1].Value == "Saved" ? GameLogEventType.Disconnect : GameLogEventType.Connect
+                    //        };
+                    //        PlayerEvent(playerConnectEvents, evData);
+                    //    }
+                    //}
                 }
             }
             _logger.LogInformation("{0} matching lines", lineMatch);

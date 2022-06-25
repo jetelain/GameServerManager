@@ -3,6 +3,7 @@ using System;
 using GameServerManagerWebApp.Entites;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GameServerManagerWebApp.Migrations
 {
     [DbContext(typeof(GameServerManagerContext))]
-    partial class GameServerManagerContextModelSnapshot : ModelSnapshot
+    [Migration("20220625072637_PlayerName")]
+    partial class PlayerName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "6.0.6");

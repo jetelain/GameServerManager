@@ -25,13 +25,15 @@ namespace GameServerManagerWebApp.Controllers
         private readonly GameServerService _service;
         private readonly GameServerManagerContext _context;
         private readonly IHttpClientFactory _factory;
+        private readonly ServerStateService _serverStateService;
 
-        public AdminGameServersController(ILogger<AdminGameServersController> logger, GameServerService service, GameServerManagerContext context, IHttpClientFactory factory)
+        public AdminGameServersController(ILogger<AdminGameServersController> logger, GameServerService service, GameServerManagerContext context, IHttpClientFactory factory, ServerStateService serverStateService)
         {
             _logger = logger;
             _service = service;
             _context = context;
             _factory = factory;
+            _serverStateService = serverStateService;
         }
 
         [HttpGet]
@@ -241,6 +243,8 @@ namespace GameServerManagerWebApp.Controllers
                 return NotFound();
             }
 
+            await _serverStateService.Poll();
+
             var logs = await _context.GameLogEvents.Where(e => e.GameServerID == id)
                 .OrderByDescending(e => e.Timestamp)
                 .Take(1000)
@@ -248,7 +252,7 @@ namespace GameServerManagerWebApp.Controllers
 
             var client = _factory.CreateClient();
             var names = new Dictionary<string, string>();
-            foreach (var steamid in logs.Select(s => s.SteamId).Distinct())
+            foreach (var steamid in logs.Where(s => string.IsNullOrEmpty(s.PlayerName)).Select(s => s.SteamId).Distinct())
             {
                 if (!string.IsNullOrEmpty(steamid))
                 {
@@ -257,7 +261,7 @@ namespace GameServerManagerWebApp.Controllers
                 }
             }
             ViewData["Server"] = gameServer;
-            return View(logs.Select(l => new LogVM { Log = l, User = names.TryGetValue(l.SteamId, out string name) ? name : string.Empty }).ToList());
+            return View(logs.Select(l => new LogVM { Log = l, User =  l.PlayerName ?? (names.TryGetValue(l.SteamId, out string name) ? name : string.Empty) }).ToList());
         }
 
         public IActionResult DownloadMission(int id, string mission)

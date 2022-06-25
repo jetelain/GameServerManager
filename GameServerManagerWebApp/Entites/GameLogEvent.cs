@@ -13,6 +13,7 @@ namespace GameServerManagerWebApp.Entites
         public GameServer Server { get; set; }
 
         public string SteamId { get; set; }
+        public string PlayerName { get; set; }
 
         public GameLogEventType Type { get; set; }
 

@@ -255,7 +255,7 @@ namespace GameServerManagerWebApp.Services
             {
                 GameServerID = gameServer.GameServerID,
                 SteamId = SteamHelper.GetSteamId(user),
-                Timestamp = DateTime.Now,
+                Timestamp = DateTime.UtcNow,
                 Type = type
             });
             await _context.SaveChangesAsync();
