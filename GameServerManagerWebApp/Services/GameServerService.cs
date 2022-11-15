@@ -499,6 +499,7 @@ namespace GameServerManagerWebApp.Services
             {
                 var name = mod.Parent.Descendants("td").Attributes("data-type").Where(a => a.Value == "DisplayName").FirstOrDefault()?.Parent?.FirstNode?.ToString();
                 var href = mod.Parent.Descendants("a").Attributes("href").FirstOrDefault()?.Value;
+                href = href.Replace("https:","http:");
                 if (!string.IsNullOrEmpty(href) && href.StartsWith(steamPrefix))
                 {
                     var modSteamId = href.Substring(steamPrefix.Length);
