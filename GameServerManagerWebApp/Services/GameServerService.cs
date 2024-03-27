@@ -486,6 +486,19 @@ namespace GameServerManagerWebApp.Services
             }
         }
 
+        internal List<SetupArma3Mod> AnalyseModsetOnServer(Modset actualModset, GameServer server)
+        {
+            var config = GetConfig(server);
+            using (var client = GetSftpClient(config.Server))
+            {
+                client.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(1000);
+                client.Connect();
+                var analyze = AnalyseModsetFile(config, XDocument.Parse(actualModset.DefinitionFile), client);
+                client.Disconnect();
+                return analyze;
+            }
+        }
+
         private string ToErrorMessage(List<SetupArma3Mod> analyze)
         {
             return string.Join("\r\n ", analyze.Where(e => !e.IsOK).Select(e => e.Message));
@@ -505,7 +518,23 @@ namespace GameServerManagerWebApp.Services
                     var modSteamId = href.Substring(steamPrefix.Length);
                     if (client == null || client.Exists(game.GameBaseDirectory + "/@" + modSteamId))
                     {
-                        mods.Add(new SetupArma3Mod() { Id = modSteamId, Name = name, Href = href, IsOK = true });
+                        var size = 0L;
+
+                        if (client != null && game != null)
+                        {
+                            try
+                            {
+                                var z = client.ListDirectory(game.GameBaseDirectory + "/@" + modSteamId).FirstOrDefault(d => string.Equals(d.Name, "addons", StringComparison.OrdinalIgnoreCase));
+                                if (z != null)
+                                {
+                                    size = client.ListDirectory(z.FullName).Sum(f => f.Length);
+                                }
+                            }
+                            catch
+                            {
+                            }
+                        }
+                        mods.Add(new SetupArma3Mod() { Id = modSteamId, Name = name, Href = href, IsOK = true, Size = size });
                     }
                     else
                     {

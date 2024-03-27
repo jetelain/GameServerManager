@@ -43,14 +43,30 @@ namespace GameServerManagerWebApp.Controllers
                 return NotFound();
             }
 
-            var Modset = await _context.Modsets
+            var modset = await _context.Modsets
                 .FirstOrDefaultAsync(m => m.ModsetID == id);
-            if (Modset == null)
+            if (modset == null)
             {
                 return NotFound();
             }
 
-            return View(Modset);
+            var servers = await _context.GameServers
+                .Where(s => s.Type == GameServerType.Arma3)
+                .Include(s => s.HostServer)
+                .ToListAsync();
+
+            modset.Servers =
+                servers
+                .Select(s => s.HostServer)
+                .Distinct()
+                .Select(h => servers.First(s => s.HostServer == h))
+                .Select(server => 
+                new ModesetGameServerMods() { 
+                    GameServer = server, 
+                    Mods = _service.AnalyseModsetOnServer(modset, server) })
+                .ToList();
+
+            return View(modset);
         }
 
         [HttpGet]

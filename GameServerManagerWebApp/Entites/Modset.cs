@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using GameServerManagerWebApp.Models;
 
 namespace GameServerManagerWebApp.Entites
 {
@@ -15,5 +18,8 @@ namespace GameServerManagerWebApp.Entites
         public string DefinitionFile { get; set; }
         public string ConfigurationFile { get; set; }
         public DateTime LastUpdate { get; internal set; }
+
+        [NotMapped]
+        public List<ModesetGameServerMods> Servers { get; internal set; }
     }
 }

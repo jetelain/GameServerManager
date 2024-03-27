@@ -34,8 +34,37 @@
         <dd class="col-sm-10">
             @Html.DisplayFor(model => model.LastUpdate)
         </dd>
+        <dt class="col-sm-2">
+            Taille (Mo)
+        </dt>
+        <dd class="col-sm-10">
+            @Math.Ceiling(@Model.Servers.Max(srv => srv.Mods.Sum(m => m.Size)) / 1024.0 / 1024.0)
+        </dd>
     </dl>
 </div>
 <div>
     <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.ModsetID">Modifier</a>
 </div>
+
+@foreach(var server in Model.Servers)
+{
+    <h2>@server.GameServer.Label</h2>
+
+    <table>
+        <tr>
+            <th>Id</th>
+            <th>Nom</th>
+            <th>Taille (Mo)</th>
+            <th></th>
+        </tr>
+        @foreach(var mod in server.Mods.OrderByDescending(m => m.Message).ThenByDescending(m => m.Size))
+        {
+            <tr>
+                <td>@mod.Id</td>
+                <td><a href="@mod.Href">@mod.Name</a></td>
+                <td class="text-right">@Math.Ceiling(mod.Size / 1024.0 / 1024.0)</td>
+                <td>@mod.Message</td>
+            </tr>
+        }
+    </table>
+}
