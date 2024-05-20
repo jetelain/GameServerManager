@@ -221,7 +221,7 @@ namespace GameServerManagerWebApp.Services
             await _context.SaveChangesAsync();
         }
 
-        private async Task ProcessArmaLogFile(GameServer server, SftpClient client, SftpFile actualFile, GameLogFile logFileInfos)
+        private async Task ProcessArmaLogFile(GameServer server, SftpClient client, ISftpFile actualFile, GameLogFile logFileInfos)
         {
             var data = await ReadData(client, actualFile, logFileInfos);
             logFileInfos.LastSyncUTC = DateTime.UtcNow;
@@ -350,7 +350,7 @@ namespace GameServerManagerWebApp.Services
             return int.Parse(value.Trim(), CultureInfo.InvariantCulture);
         }
 
-        private async Task<string> ReadData(SftpClient client, SftpFile actualFile, GameLogFile known)
+        private async Task<string> ReadData(ISftpClient client, ISftpFile actualFile, GameLogFile known)
         {
             _logger.LogInformation("Read {0} from offset {1}", actualFile.FullName, known.ReadSize);
 

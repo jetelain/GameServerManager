@@ -6,6 +6,7 @@
 
         Arma3,
 
-        Squad
+        Squad,
+        ArmaReforger
     }
 }

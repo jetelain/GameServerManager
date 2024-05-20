@@ -350,3 +350,5 @@ MigrationBackup/
 .ionide/
 /GameServerManagerWebApp/appsettings.Development.json
 /GameServerManagerWebApp/GameServerManager.db
+/GameServerManagerWebApp/GameServerManager.db-shm
+/GameServerManagerWebApp/GameServerManager.db-wal

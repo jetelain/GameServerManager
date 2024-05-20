@@ -17,5 +17,7 @@ namespace GameServerManagerWebApp.Services
         public string GameBaseDirectory { get; internal set; }
         public string ConsoleFileDirectory { get; internal set; }
         public string ConsoleFilePrefix { get; internal set; }
+        public string ConsoleDirectoryBase { get; internal set; }
+        public string ConsoleDirectoryFile { get; internal set; }
     }
 }

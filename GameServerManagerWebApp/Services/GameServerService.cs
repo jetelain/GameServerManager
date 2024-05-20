@@ -162,7 +162,28 @@ namespace GameServerManagerWebApp.Services
                     Command = new[] { "SquadGameServer",},
                     OtherUsers = new string[0]
                 };
-            } ///home/squad/.steam/steamcmd/server/
+            }
+            if (server.Type == GameServerType.ArmaReforger)
+            {
+                return new GameConfig()
+                {
+                    Server = server.HostServer,
+                    Name = server.UserName + "@" + server.HostServer.Name,
+                    TopUserName = TopTruncate(server.UserName),
+                    StartCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/start.sh",
+                    StopCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/stop.sh",
+                    ConfigFiles = new[] {
+                        "config.json"
+                    },
+                    GameBaseDirectory = server.BasePath.TrimEnd('/'),
+                    ConsoleDirectoryBase = server.BasePath.TrimEnd('/') + "/user/logs",
+                    ConsoleDirectoryFile = "console.log",
+                    Command = new[] { "enfMain" },
+                    OtherUsers = new string[0]
+                };
+            }
+
+            ///home/squad/.steam/steamcmd/server/
             throw new NotImplementedException();
         }
 
@@ -461,12 +482,7 @@ namespace GameServerManagerWebApp.Services
 
         internal static string GenerateToken()
         {
-            var random = new byte[32];
-            using (var rng = new RNGCryptoServiceProvider())
-            {
-                rng.GetBytes(random);
-            }
-            return Convert.ToBase64String(random).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+            return Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).Replace("+", "-").Replace("/", "_").TrimEnd('=');
         }
 
         internal string ValidateModsetOnServer(Modset actualModset, GameServer server)

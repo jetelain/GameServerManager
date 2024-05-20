@@ -199,10 +199,25 @@ namespace GameServerManagerWebApp.Controllers
             if (game.ConsoleFileDirectory != null && game.ConsoleFilePrefix != null)
             {
                 var files = client.ListDirectory(game.ConsoleFileDirectory);
-                var file = files.Where(f => f.Name.StartsWith(game.ConsoleFilePrefix, StringComparison.OrdinalIgnoreCase)).OrderByDescending(f => f.LastWriteTimeUtc).FirstOrDefault();
+                var file = files
+                    .Where(f => f.Name.StartsWith(game.ConsoleFilePrefix, StringComparison.OrdinalIgnoreCase) && !f.IsDirectory)
+                    .OrderByDescending(f => f.LastWriteTimeUtc)
+                    .FirstOrDefault();
                 if (file != null)
                 {
                     return client.ReadAllText(file.FullName);
+                }
+            }
+            if (game.ConsoleDirectoryBase != null && game.ConsoleDirectoryFile != null)
+            {
+                var files = client.ListDirectory(game.ConsoleDirectoryBase);
+                var file = files
+                    .Where(f => f.IsDirectory)
+                    .OrderByDescending(f => f.LastWriteTimeUtc)
+                    .FirstOrDefault();
+                if (file != null)
+                {
+                    return client.ReadAllText(file.FullName + "/" + game.ConsoleDirectoryFile);
                 }
             }
             return string.Empty;

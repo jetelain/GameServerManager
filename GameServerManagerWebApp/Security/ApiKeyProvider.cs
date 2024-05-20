@@ -15,14 +15,14 @@ namespace GameServerManagerWebApp.Security
             _configuration = configuration;
         }
 
-        public async Task<IApiKey> ProvideAsync(string key)
+        public Task<IApiKey> ProvideAsync(string key)
         {
             var allKeys = _configuration.GetSection("AllowedApiKeys").Get<string[]>();
             if (allKeys != null && allKeys.Contains(key))
             {
-                return new ApiKey(key);
+                return Task.FromResult<IApiKey>(new ApiKey(key));
             }
-            return null;
+            return Task.FromResult<IApiKey>(null);
         }
     }
 }
