@@ -3,6 +3,10 @@
 # Basic script to install / update a GameServerManager instance on a Linux server
 # Requires dotnet SDK, see https://learn.microsoft.com/en-us/dotnet/core/install/linux, `sudo apt-get install -y dotnet-sdk-8.0` on Ubuntu 24.04 LTS
 
+# Logs         : journalctl -fu kestrel-gsm -n 100
+# Manual Stop  : sudo systemctl stop kestrel-gsm
+# Manual Start : sudo systemctl start kestrel-gsm
+
 if [ ! -d ~/build/GameServerManager ]; then
 	mkdir ~/build
 	cd ~/build
@@ -43,6 +47,7 @@ fi
 if [ ! -f /etc/systemd/system/kestrel-gsm.service ]; then
 	echo " * Create kestrel-gsm.service"
 	sudo cp setup/kestrel-gsm.service /etc/systemd/system/kestrel-gsm.service
+	sudo systemctl enable kestrel-gsm
 fi
 
 echo "Build"
