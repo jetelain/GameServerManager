@@ -68,8 +68,8 @@ namespace GameServerManagerWebApp
             if (Environment.OSVersion.Platform == PlatformID.Unix)
             {
                 services.AddDataProtection()
-                    .PersistKeysToFileSystem(new DirectoryInfo("/var/aspnet-keys"))
-                    .SetApplicationName("qrfhq");
+                    .PersistKeysToFileSystem(new DirectoryInfo("/var/www/aspnet-keys"))
+                    .SetApplicationName("gsm");
             }
 
             services.AddScoped<ServerStateService>();

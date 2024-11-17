@@ -1,0 +1,15 @@
+[Unit]
+Description=GameServerManager
+
+[Service]
+WorkingDirectory=/opt/GameServerManager
+ExecStart=/opt/GameServerManager/GameServerManagerWebApp --urls http://localhost:5040/
+Restart=always
+RestartSec=10
+KillSignal=SIGINT
+SyslogIdentifier=GameServer
+User=www-data
+Environment=ASPNETCORE_ENVIRONMENT=Production
+
+[Install]
+WantedBy=multi-user.target
