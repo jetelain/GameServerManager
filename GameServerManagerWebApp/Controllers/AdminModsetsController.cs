@@ -55,17 +55,19 @@ namespace GameServerManagerWebApp.Controllers
                 .Include(s => s.HostServer)
                 .ToListAsync();
 
-            modset.Servers =
-                servers
+            modset.Servers = new List<ModesetGameServerMods>();
+
+            foreach (var server in servers
                 .Select(s => s.HostServer)
                 .Distinct()
-                .Select(h => servers.First(s => s.HostServer == h))
-                .Select(server => 
-                new ModesetGameServerMods() { 
-                    GameServer = server, 
-                    Mods = _service.AnalyseModsetOnServer(modset, server) })
-                .ToList();
-
+                .Select(h => servers.First(s => s.HostServer == h)))
+            {
+                modset.Servers.Add(new ModesetGameServerMods()
+                {
+                    GameServer = server,
+                    Mods = await _service.AnalyseModsetOnServer(modset, server)
+                });
+            }
             return View(modset);
         }
 

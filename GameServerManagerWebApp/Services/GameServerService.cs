@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -28,22 +29,19 @@ namespace GameServerManagerWebApp.Services
         private readonly IConfiguration _config;
         private readonly GameServerManagerContext _context;
         private readonly IHttpClientFactory _factory;
+        private readonly ISshService _sshService;
 
         internal static readonly Regex PasswordRegex = new Regex(@"password\s*=\s*""(.*)""", RegexOptions.IgnoreCase);
         internal static readonly Regex LabelRegex = new Regex(@"hostname\s*=\s*""(.*)""", RegexOptions.IgnoreCase);
         internal static readonly Regex MissionRegex = new Regex(@"class\s+Missions\s*{[^}]*class\s+[a-zA-Z0-9]+\s*{\s*template\s*=\s*([^;]*);", RegexOptions.IgnoreCase| RegexOptions.Multiline);
 
-        public GameServerService(ILogger<GameServerService> logger, IConfiguration config, GameServerManagerContext context, IHttpClientFactory factory)
+        public GameServerService(ILogger<GameServerService> logger, IConfiguration config, GameServerManagerContext context, IHttpClientFactory factory, ISshService sshService)
         {
             _logger = logger;
             _config = config;
             _context = context;
             _factory = factory;
-        }
-
-        internal SshClient GetClient(HostServer server)
-        {
-            return new SshClient(server.Address, server.SshUserName, GetPassword(server));
+            _sshService = sshService;
         }
 
         private string GetPassword(HostServer server)
@@ -61,9 +59,8 @@ namespace GameServerManagerWebApp.Services
         {
             foreach (var server in await _context.HostServers.ToListAsync())
             {
-                using (var client = GetSftpClient(server))
+                await _sshService.RunSftpAsync(server, async client =>
                 {
-                    client.Connect();
                     foreach (var currentConfig in await _context.GameServerConfigurations
                         .Include(c => c.GameServer)
                         .Include(c => c.Files)
@@ -73,15 +70,14 @@ namespace GameServerManagerWebApp.Services
                     {
                         await SyncConfig(client, currentConfig);
                     }
-                    client.Disconnect();
-                }
+                });
             }
         }
 
-        internal SftpClient GetSftpClient(HostServer server)
-        {
-            return new SftpClient(server.Address, server.SshUserName, GetPassword(server));
-        }
+        //internal SftpClient GetSftpClient(HostServer server)
+        //{
+        //    return new SftpClient(server.Address, server.SshUserName, GetPassword(server));
+        //}
 
 
         internal GameServerInfo GetGameInfos(GameServer g, List<ProcessInfo> processes)
@@ -196,32 +192,12 @@ namespace GameServerManagerWebApp.Services
             return userName;
         }
 
-        internal List<ProcessInfo> GetRunningProcesses(HostServer server)
-        {
-            List<ProcessInfo> processes;
-            try
-            {
-                using (var client = GetClient(server))
-                {
-                    client.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(1000);
-                    client.Connect();
-                    processes = GetRunningProcesses(client, server);
-                    client.Disconnect();
-                }
-            }
-            catch (SshOperationTimeoutException)
-            {
-                processes = new List<ProcessInfo>();
-            }
-            return processes;
-        }
-
-        internal List<ProcessInfo> GetRunningProcesses()
+        internal async Task<List<ProcessInfo>> GetRunningProcesses()
         {
             List<ProcessInfo> processes = new List<ProcessInfo>();
             foreach (var server in _context.HostServers)
             {
-                processes.AddRange(GetRunningProcesses(server));
+                processes.AddRange(await GetRunningProcesses(server));
             }
             return processes;
         }
@@ -234,13 +210,9 @@ namespace GameServerManagerWebApp.Services
 
             await ApplyAllConfiguration(currentConfig, game);
 
-            using (var client = GetClient(game.Server))
-            {
-                client.Connect();
-                var result = client.RunCommand(game.StartCmd);
-                Thread.Sleep(100);
-                client.Disconnect();
-            }
+            await _sshService.RunCommandAsync(game.Server, game.StartCmd);
+
+            await Task.Delay(100);
         }
 
         internal async Task ApplyAllConfiguration(GameServerConfiguration currentConfig)
@@ -248,15 +220,12 @@ namespace GameServerManagerWebApp.Services
             await ApplyAllConfiguration(currentConfig, GetConfig(currentConfig.GameServer));
         }
 
-
-
         private async Task ApplyAllConfiguration(GameServerConfiguration currentConfig, GameConfig game)
         {
             if (!currentConfig.IsActive || currentConfig.GameServer.SyncFiles.Count > 0)
             {
-                using (var client = GetSftpClient(currentConfig.GameServer.HostServer))
+                await _sshService.RunSftpAsync(currentConfig.GameServer.HostServer, async client =>
                 {
-                    client.Connect();
                     if (!currentConfig.IsActive)
                     {
                         await ApplyConfiguration(currentConfig, game, client);
@@ -265,8 +234,7 @@ namespace GameServerManagerWebApp.Services
                     {
                         await UpdateSyncedFiles(currentConfig.GameServer, game, client);
                     }
-                    client.Disconnect();
-                }
+                });
             }
         }
 
@@ -306,12 +274,11 @@ namespace GameServerManagerWebApp.Services
         internal async Task UpdateSyncedFiles(GameServer server)
         {
             var game = GetConfig(server);
-            using (var client = GetSftpClient(server.HostServer))
+
+            await _sshService.RunSftpAsync(server.HostServer, async client =>
             {
-                client.Connect();
                 await UpdateSyncedFiles(server, game, client);
-                client.Disconnect();
-            }
+            });
         }
 
         private async Task UpdateSyncedFiles(GameServer server, GameConfig game, SftpClient client)
@@ -353,29 +320,33 @@ namespace GameServerManagerWebApp.Services
 
             var game = GetConfig(gameServer);
 
-            using (var client = GetClient(game.Server))
-            {
-                client.Connect();
-                var result = client.RunCommand(game.StopCmd);
-                Thread.Sleep(100);
-                client.Disconnect();
-            }
+            await _sshService.RunCommandAsync(game.Server, game.StopCmd);
+
+            await Task.Delay(100);
         }
 
         private static readonly Regex Space = new Regex("\\s+", RegexOptions.Compiled);
 
-        private static List<ProcessInfo> GetRunningProcesses(SshClient client, HostServer server)
+        public async Task<List<ProcessInfo>> GetRunningProcesses(HostServer server)
         {
-            var top = client.RunCommand("/usr/bin/top -n 1 -b -w 200");
-            return top.Result.Split("\n").Skip(7).Select(l => Space.Split(l.Trim())).Where(items => items.Length == 12).Select(items => new ProcessInfo()
+            try
             {
-                Pid = int.Parse(items[0], CultureInfo.InvariantCulture),
-                User = items[1],
-                Cpu = decimal.Parse(items[8], CultureInfo.InvariantCulture),
-                Mem = decimal.Parse(items[9], CultureInfo.InvariantCulture),
-                Cmd = items[11],
-                Server = server
-            }).ToList();
+                var top = await _sshService.RunCommandAsync(server, "/usr/bin/top -n 1 -b -w 200");
+
+                return top.Result.Split("\n").Skip(7).Select(l => Space.Split(l.Trim())).Where(items => items.Length == 12).Select(items => new ProcessInfo()
+                {
+                    Pid = int.Parse(items[0], CultureInfo.InvariantCulture),
+                    User = items[1],
+                    Cpu = decimal.Parse(items[8], CultureInfo.InvariantCulture),
+                    Mem = decimal.Parse(items[9], CultureInfo.InvariantCulture),
+                    Cmd = items[11],
+                    Server = server
+                }).ToList();
+            }
+            catch (SshOperationTimeoutException)
+            {
+                return new List<ProcessInfo>();
+            }
         }
 
         internal async Task SyncConfig(SftpClient client, GameServerConfiguration currentConfig)
@@ -485,34 +456,27 @@ namespace GameServerManagerWebApp.Services
             return Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).Replace("+", "-").Replace("/", "_").TrimEnd('=');
         }
 
-        internal string ValidateModsetOnServer(Modset actualModset, GameServer server)
+        internal async Task<string> ValidateModsetOnServer(Modset actualModset, GameServer server)
         {
             var config = GetConfig(server);
-            using (var client = GetSftpClient(config.Server))
+            return await _sshService.RunSftpAsync<string>(config.Server, async client =>
             {
-                client.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(1000);
-                client.Connect();
                 var analyze = AnalyseModsetFile(config, XDocument.Parse(actualModset.DefinitionFile), client);
-                client.Disconnect();
                 if (analyze.Any(m => !m.IsOK))
                 {
                     return ToErrorMessage(analyze);
                 }
                 return null;
-            }
+            });
         }
 
-        internal List<SetupArma3Mod> AnalyseModsetOnServer(Modset actualModset, GameServer server)
+        internal async Task<List<SetupArma3Mod>> AnalyseModsetOnServer(Modset actualModset, GameServer server)
         {
             var config = GetConfig(server);
-            using (var client = GetSftpClient(config.Server))
+            return await _sshService.RunSftpAsync(server.HostServer, async client =>
             {
-                client.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(1000);
-                client.Connect();
-                var analyze = AnalyseModsetFile(config, XDocument.Parse(actualModset.DefinitionFile), client);
-                client.Disconnect();
-                return analyze;
-            }
+                return AnalyseModsetFile(config, XDocument.Parse(actualModset.DefinitionFile), client);
+            });
         }
 
         private string ToErrorMessage(List<SetupArma3Mod> analyze)
@@ -585,7 +549,7 @@ namespace GameServerManagerWebApp.Services
             return null;
         }
 
-        internal string UploadMissionFile(IFormFile file, GameServer gameServer)
+        internal async Task<string> UploadMissionFile(IFormFile file, GameServer gameServer)
         {
             if (gameServer.Type != GameServerType.Arma3)
             {
@@ -594,16 +558,14 @@ namespace GameServerManagerWebApp.Services
             var config = GetConfig(gameServer);
             var name = Path.GetFileName(file.FileName);
             var targetFile = config.MissionDirectory + "/" + name;
-            using (var client = GetSftpClient(config.Server))
+            await _sshService.RunSftpAsync(config.Server, async client =>
             {
-                client.Connect();
                 BackupIfExists(targetFile, client);
                 using (var source = file.OpenReadStream())
                 {
                     client.UploadFile(source, targetFile, true);
                 }
-                client.Disconnect();
-            }
+            });
             return Path.GetFileNameWithoutExtension(name);
         }
 

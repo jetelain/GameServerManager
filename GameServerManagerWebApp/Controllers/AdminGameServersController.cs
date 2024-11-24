@@ -26,20 +26,22 @@ namespace GameServerManagerWebApp.Controllers
         private readonly GameServerManagerContext _context;
         private readonly IHttpClientFactory _factory;
         private readonly ServerStateService _serverStateService;
+        private readonly ISshService _sshService;
 
-        public AdminGameServersController(ILogger<AdminGameServersController> logger, GameServerService service, GameServerManagerContext context, IHttpClientFactory factory, ServerStateService serverStateService)
+        public AdminGameServersController(ILogger<AdminGameServersController> logger, GameServerService service, GameServerManagerContext context, IHttpClientFactory factory, ServerStateService serverStateService, ISshService sshService)
         {
             _logger = logger;
             _service = service;
             _context = context;
             _factory = factory;
             _serverStateService = serverStateService;
+            _sshService = sshService;
         }
 
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var processes = _service.GetRunningProcesses();
+            var processes = await _service.GetRunningProcesses();
 
             var games = (await _context.GameServers.Include(g => g.HostServer).ToListAsync()).
                 Select(game => _service.GetGameInfos(game, processes)).ToList();
@@ -153,19 +155,17 @@ namespace GameServerManagerWebApp.Controllers
             if (gameServer.HostServerID != null)
             {
                 var gameConfig = _service.GetConfig(gameServer);
-                using (var client = _service.GetSftpClient(gameConfig.Server))
+                await _sshService.RunSftpAsync(gameConfig.Server, async client =>
                 {
-                    client.Connect();
                     if (!string.IsNullOrEmpty(gameConfig.MissionDirectory) && gameServer.Type == GameServerType.Arma3)
                     {
                         vm.MissionFiles = client.ListDirectory(gameConfig.MissionDirectory).Where(f => f.IsRegularFile).Select(f => Path.GetFileName(f.FullName)).Where(f => f.EndsWith(".pbo", StringComparison.OrdinalIgnoreCase)).ToList();
                         vm.MissionFiles.Sort();
                     }
                     await _service.SyncConfig(client, gameConfig, currentConfig);
-                    client.Disconnect();
-                }
+                });
                 vm.Game = gameConfig;
-                vm.Infos = _service.GetGameInfos(gameServer, _service.GetRunningProcesses(gameConfig.Server));
+                vm.Infos = _service.GetGameInfos(gameServer, await _service.GetRunningProcesses(gameConfig.Server));
                 vm.ConfigFiles = gameConfig.ConfigFiles.Select((f, i) => new ConfigFileInfos()
                 {
                     Index = i,
@@ -224,7 +224,7 @@ namespace GameServerManagerWebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult FullLog(int id)
+        public async Task<IActionResult> FullLog(int id)
         {
             var gameServer = _context.GameServers.Include(g => g.HostServer).FirstOrDefault(g => g.GameServerID == id);
             if (gameServer == null || gameServer.HostServerID == null)
@@ -234,13 +234,11 @@ namespace GameServerManagerWebApp.Controllers
             var game = _service.GetConfig(gameServer);
             var vm = new ServerInfosViewModel();
             vm.GameServer = gameServer;
-            vm.Infos = _service.GetGameInfos(gameServer, _service.GetRunningProcesses(game.Server));
-            using (var client = _service.GetSftpClient(game.Server))
+            vm.Infos = _service.GetGameInfos(gameServer, await _service.GetRunningProcesses(game.Server));
+            await _sshService.RunSftpAsync(game.Server, async client =>
             {
-                client.Connect();
                 vm.Console = GetLog(game, client);
-                client.Disconnect();
-            }
+            });
             const int ConsoleMaxLength = 5_000_000;
             if (vm.Console != null && vm.Console.Length > ConsoleMaxLength)
             {
@@ -279,7 +277,7 @@ namespace GameServerManagerWebApp.Controllers
             return View(logs.Select(l => new LogVM { Log = l, User =  l.PlayerName ?? (names.TryGetValue(l.SteamId, out string name) ? name : string.Empty) }).ToList());
         }
 
-        public IActionResult DownloadMission(int id, string mission)
+        public async Task<IActionResult> DownloadMission(int id, string mission)
         {
             var gameServer = _context.GameServers.Include(g => g.HostServer).FirstOrDefault(g => g.GameServerID == id);
             if (gameServer == null || gameServer.HostServerID == null)
@@ -292,12 +290,10 @@ namespace GameServerManagerWebApp.Controllers
             var sourceFile = game.MissionDirectory + "/" + name;
 
             var mem = new MemoryStream();
-            using (var client = _service.GetSftpClient(game.Server))
+            await _sshService.RunSftpAsync(game.Server, async client =>
             {
-                client.Connect();
                 client.DownloadFile(sourceFile, mem);
-                client.Disconnect();
-            }
+            });
 
             return new FileContentResult(mem.ToArray(), "application/octet-stream")
             {

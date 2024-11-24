@@ -26,14 +26,16 @@ namespace GameServerManagerWebApp.Services
         private readonly ILogger<ServerStateService> _logger;
         private readonly GameServerManagerContext _context;
         private readonly GameServerService _service;
+        private readonly ISshService _sshService;
         private static int pollingLock = 0;
         private static int snapshotLock = 0;
 
-        public ServerStateService(ILogger<ServerStateService> logger, GameServerManagerContext context, GameServerService service)
+        public ServerStateService(ILogger<ServerStateService> logger, GameServerManagerContext context, GameServerService service, ISshService sshService)
         {
             _logger = logger;
             _context = context;
             _service = service;
+            _sshService = sshService;
         }
 
         public async Task<List<GameLogEvent>> GetConnectedPlayersRealTime(bool forcePolling = false)
@@ -80,7 +82,7 @@ namespace GameServerManagerWebApp.Services
         {
             var latsInvTimestamp = await _context.GamePersistSnapshots.Where(i => i.GameServerID == server.GameServerID).MaxAsync(i => i.Timestamp);
 
-            foreach(var backup in DownloadBackup(config, latsInvTimestamp))
+            foreach(var backup in await DownloadBackup(config, latsInvTimestamp))
             { 
                 var inv = new GamePersistSnapshot() 
                 { 
@@ -142,12 +144,11 @@ namespace GameServerManagerWebApp.Services
             return item;
         }
         */
-        private List<PersistBackup> DownloadBackup(GameConfig config, DateTime last)
+        private async Task<List<PersistBackup>> DownloadBackup(GameConfig config, DateTime last)
         {
             List<PersistBackup> backup = new List<PersistBackup>();
-            using (var client = _service.GetSftpClient(config.Server))
+            await _sshService.RunSftpAsync(config.Server, async client =>
             {
-                client.Connect();
                 var file = config.ConsoleFileDirectory + "/Users/server/server.vars.Arma3Profile";
                 if (client.Exists(file))
                 {
@@ -158,8 +159,7 @@ namespace GameServerManagerWebApp.Services
                         backup = PersistBackup.Read(new MemoryStream(bytes), dt);
                     }
                 }
-                client.Disconnect();
-            }
+            });
             return backup;
         }
         public async Task Poll()
@@ -192,10 +192,8 @@ namespace GameServerManagerWebApp.Services
 
         private async Task Poll(GameServer server, GameConfig config)
         {
-            using (var client = _service.GetSftpClient(config.Server))
+            await _sshService.RunSftpAsync(config.Server, async client =>
             {
-                client.Connect();
-
                 var actualFiles = client.ListDirectory(config.ConsoleFileDirectory)
                     .Where(f => f.Name.StartsWith(config.ConsoleFilePrefix, StringComparison.OrdinalIgnoreCase))
                     .OrderBy(f => f.LastWriteTimeUtc)
@@ -210,9 +208,7 @@ namespace GameServerManagerWebApp.Services
                         await ProcessArmaLogFile(server, client, actualFile, known ?? new GameLogFile() { Server = server, Filename = actualFile.Name, UnreadData = "" });
                     }
                 }
-
-                client.Disconnect();
-            }
+            });
 
             server.LastPollUtc = DateTime.UtcNow;
             server.ConnectedPlayers = await _context.GameLogEvents.CountAsync(e => e.Type == GameLogEventType.Connect && !e.IsFinished && e.GameServerID == server.GameServerID);
