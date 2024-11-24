@@ -303,14 +303,14 @@ namespace GameServerManagerWebApp.Controllers
 
         [ValidateAntiForgeryToken]
         [HttpPost]
-        public IActionResult UploadMission(int id, IFormFile file)
+        public async Task<IActionResult> UploadMission(int id, IFormFile file)
         {
             var gameServer = _context.GameServers.Include(g => g.HostServer).FirstOrDefault(g => g.GameServerID == id);
             if (gameServer == null)
             {
                 return BadRequest();
             }
-            _service.UploadMissionFile(file, gameServer);
+            await _service.UploadMissionFile(file, gameServer);
             return RedirectToAction(nameof(Details), new { id });
         }
 
