@@ -72,5 +72,17 @@ namespace GameServerManagerWebApp.Services
             return entry.Value;
         }
 
+        public async Task<SshCommand> RunLongCommandAsync(HostServer server, string commandText, CancellationToken cancellationToken = default)
+        {
+            var entry = new SshServiceEntry(server, GetPassword(server));
+            try
+            {
+                return await entry.RunCommandAsync(commandText, cancellationToken);
+            }
+            finally
+            {
+                entry.Dispose();
+            }
+        }
     }
 }

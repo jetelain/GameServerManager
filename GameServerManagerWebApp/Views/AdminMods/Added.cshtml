@@ -1,0 +1,31 @@
+﻿@model GameServerManagerWebApp.Services.Arma3Mods.ModsAddResult
+
+@{
+    ViewData["Title"] = "Ajouter des mods";
+}
+
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Mods</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@ViewData["Title"]</li>
+        </ol>
+    </nav> }
+
+@section Title { <h1><span>@ViewData["Title"]</span></h1> }
+
+<p>Ajouté <span class="badge badge-success">@Model.Added.Count</span></p>
+<ul>
+    @foreach (var item in Model.Added)
+    {
+        <li>@item</li>
+    }
+</ul>
+
+<p>Pré-existant <span class="badge badge-info">@Model.Existing.Count</span></p>
+<ul>
+    @foreach (var item in Model.Existing)
+    {
+        <li>@item</li>
+    }
+</ul>

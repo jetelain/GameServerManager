@@ -14,5 +14,8 @@ namespace GameServerManagerWebApp.Services
 
         Task<TResult> RunSftpAsync<TResult>(HostServer server, Func<SftpClient, Task<TResult>> operation, CancellationToken cancellationToken = default);
 
+        Task<SshCommand> RunLongCommandAsync(HostServer server, string commandText, CancellationToken cancellationToken = default);
+
+
     }
 }

@@ -5,6 +5,7 @@ using AspNetCore.Authentication.ApiKey;
 using GameServerManagerWebApp.Entites;
 using GameServerManagerWebApp.Security;
 using GameServerManagerWebApp.Services;
+using GameServerManagerWebApp.Services.Arma3Mods;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.CookiePolicy;
@@ -74,7 +75,8 @@ namespace GameServerManagerWebApp
 
             services.AddScoped<ServerStateService>();
             services.AddScoped<GameServerService>();
-            services.AddSingleton<ISshService,SshService>();
+            services.AddSingleton<ISshService,SshService>(); 
+            services.AddSingleton<IArmaModManager, ArmaModManager>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

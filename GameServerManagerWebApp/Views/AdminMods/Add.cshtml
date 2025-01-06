@@ -1,0 +1,30 @@
+﻿@model HostServer
+
+@{
+    ViewData["Title"] = "Ajouter des mods";
+}
+
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Mods</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@ViewData["Title"]</li>
+        </ol>
+    </nav> }
+
+@section Title { <h1><span>@ViewData["Title"]</span></h1> }
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Add" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label for="mods" class="control-label">Liste des mods (un identifiant par ligne)</label>
+                <textarea name="mods" id="mods" class="form-control" rows="10"></textarea>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Ajouter" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>

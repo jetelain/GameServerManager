@@ -1,0 +1,78 @@
+﻿@model List<HostModsViewModel>
+
+@{
+    ViewData["Title"] = "Mods";
+}
+
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item active" aria-current="page">@ViewData["Title"]</li>
+        </ol>
+    </nav> }
+
+@section Title { <h1><span>@ViewData["Title"]</span></h1> }
+
+@foreach(var server in Model)
+{
+    if(server.IsInstalling)
+    {
+        <p class="alert alert-warning">
+            Installation / Mise à jours en cours. Aucune modification possible.
+        </p>
+    }
+    else
+    {
+        <form method="post">
+            <a class="btn btn-primary" asp-action="Add" asp-route-id="@server.Server.HostServerID">Ajouter des mods</a>
+            <button class="btn btn-outline-primary" asp-action="UpdateNow" asp-route-id="@server.Server.HostServerID">Mise à jour manuelle</button>
+        </form>
+
+        if (server.LastInstall != null)
+        {
+            <p>
+                Dernière installation manuelle : @server.LastInstall.Finished.ToString("dd/MM/yyyy HH:mm:ss"), @(server.LastInstall.ExitStatus == 0 ? "OK" : $"Erreur {server.LastInstall.ExitStatus}")
+            </p>
+        }
+    }
+
+    <p>
+        Total de @Math.Round(@server.Mods.Sum(m => m.ModSize) / 1024.0 / 1024.0, 2).ToString("#,0") Mo
+    </p>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    Identifiant
+                </th>
+                <th>
+                    Nom
+                </th>
+                <th class="text-right">
+                    Taille (Mo)
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in server.Mods.OrderBy(mbox => mbox.ModName))
+            {
+                <tr>
+                    <td>
+                        @item.ModSteamId
+                    </td>
+                    <td>
+                        @item.ModName
+                    </td>
+                    <td class="text-right">
+                        @Math.Round(item.ModSize / 1024.0 / 1024.0, 2).ToString("#,0.00")
+                    </td>
+                    <td>
+
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
