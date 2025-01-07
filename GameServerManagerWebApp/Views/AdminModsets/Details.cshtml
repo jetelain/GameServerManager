@@ -38,32 +38,53 @@
             Taille (Mo)
         </dt>
         <dd class="col-sm-10">
-            @Math.Ceiling(@Model.Servers.Max(srv => srv.Mods.Sum(m => m.Size)) / 1024.0 / 1024.0)
+            @Math.Round(Model.Servers.Max(srv => srv.Mods.Sum(m => m.Size)) / 1024.0 / 1024.0, 2).ToString("#,0")
         </dd>
     </dl>
 </div>
-<div>
+<p>
     <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.ModsetID">Modifier</a>
-</div>
+</p>
 
 @foreach(var server in Model.Servers)
 {
-    <h2>@server.GameServer.Label</h2>
+    var canBeInstalled = server.Mods.Where(m => m.Installed == null && !string.IsNullOrEmpty(m.SteamId)).Select(m => m.SteamId).ToList();
+    @if (canBeInstalled.Count > 0)
+    {
+        <form asp-controller="AdminMods" asp-action="Add" asp-route-id="@server.HostServer.HostServerID" method="post">
+            <input type="hidden" name="mods" value="@string.Join('\n', canBeInstalled)" />
+            <button class="btn btn-primary">Installer les mods manquants</button>
+        </form>
+    }
 
-    <table>
+    <table class="table">
         <tr>
             <th>Id</th>
             <th>Nom</th>
-            <th>Taille (Mo)</th>
+            <th class="text-right">Taille (Mo)</th>
             <th></th>
         </tr>
-        @foreach(var mod in server.Mods.OrderByDescending(m => m.Message).ThenByDescending(m => m.Size))
+        @foreach(var mod in server.Mods.OrderByDescending(m => m.Installed == null).ThenByDescending(m => m.Size))
         {
             <tr>
-                <td>@mod.Id</td>
+                <td>@mod.SteamId</td>
                 <td><a href="@mod.Href">@mod.Name</a></td>
-                <td class="text-right">@Math.Ceiling(mod.Size / 1024.0 / 1024.0)</td>
-                <td>@mod.Message</td>
+                <td class="text-right">
+                    @if (mod.Installed != null)
+                    {
+                        @Math.Round(mod.Size / 1024.0 / 1024.0, 2).ToString("#,0.00")
+                    }
+                </td>
+                <td>
+                    @if (string.IsNullOrEmpty(mod.SteamId))
+                    {
+                        @:Non disponible sur le Workshop
+                    }
+                    else if (mod.Installed == null)
+                    {
+                        @:Non installé sur le serveur
+                    }
+                </td>
             </tr>
         }
     </table>

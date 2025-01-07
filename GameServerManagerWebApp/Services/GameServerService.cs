@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using GameServerManagerWebApp.Entites;
 using GameServerManagerWebApp.Models;
+using GameServerManagerWebApp.Services.Arma3Mods;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -470,15 +471,6 @@ namespace GameServerManagerWebApp.Services
             });
         }
 
-        internal async Task<List<SetupArma3Mod>> AnalyseModsetOnServer(Modset actualModset, GameServer server)
-        {
-            var config = GetConfig(server);
-            return await _sshService.RunSftpAsync(server.HostServer, async client =>
-            {
-                return AnalyseModsetFile(config, XDocument.Parse(actualModset.DefinitionFile), client);
-            });
-        }
-
         private string ToErrorMessage(List<SetupArma3Mod> analyze)
         {
             return string.Join("\r\n ", analyze.Where(e => !e.IsOK).Select(e => e.Message));
@@ -486,44 +478,24 @@ namespace GameServerManagerWebApp.Services
 
         private List<SetupArma3Mod> AnalyseModsetFile(GameConfig game, XDocument doc, SftpClient client)
         {
-            var steamPrefix = "http://steamcommunity.com/sharedfiles/filedetails/?id=";
+            var defintions = ModsetFileHelper.GetModsetEntries(doc);
             var mods = new List<SetupArma3Mod>();
-            foreach (var mod in doc.Descendants("tr").Attributes("data-type").Where(a => a.Value == "ModContainer"))
+            foreach (var mod in defintions)
             {
-                var name = mod.Parent.Descendants("td").Attributes("data-type").Where(a => a.Value == "DisplayName").FirstOrDefault()?.Parent?.FirstNode?.ToString();
-                var href = mod.Parent.Descendants("a").Attributes("href").FirstOrDefault()?.Value;
-                href = href.Replace("https:","http:");
-                if (!string.IsNullOrEmpty(href) && href.StartsWith(steamPrefix))
+                if (!string.IsNullOrEmpty(mod.SteamId))
                 {
-                    var modSteamId = href.Substring(steamPrefix.Length);
-                    if (client == null || client.Exists(game.GameBaseDirectory + "/@" + modSteamId))
+                    if (client == null || client.Exists(game.GameBaseDirectory + "/@" + mod.SteamId))
                     {
-                        var size = 0L;
-
-                        if (client != null && game != null)
-                        {
-                            try
-                            {
-                                var z = client.ListDirectory(game.GameBaseDirectory + "/@" + modSteamId).FirstOrDefault(d => string.Equals(d.Name, "addons", StringComparison.OrdinalIgnoreCase));
-                                if (z != null)
-                                {
-                                    size = client.ListDirectory(z.FullName).Sum(f => f.Length);
-                                }
-                            }
-                            catch
-                            {
-                            }
-                        }
-                        mods.Add(new SetupArma3Mod() { Id = modSteamId, Name = name, Href = href, IsOK = true, Size = size });
+                        mods.Add(new SetupArma3Mod() { Id = mod.SteamId, Name = mod.Name, Href = mod.Href, IsOK = true });
                     }
                     else
                     {
-                        mods.Add(new SetupArma3Mod() { Id = modSteamId, Name = name, Href = href, IsOK = false, Message = $"Mod '{name}' non installé sur le serveur ({modSteamId})." });
+                        mods.Add(new SetupArma3Mod() { Id = mod.SteamId, Name = mod.Name, Href = mod.Href, IsOK = false, Message = $"Mod '{mod.Name}' non installé sur le serveur ({mod.SteamId})." });
                     }
                 }
                 else
                 {
-                    mods.Add(new SetupArma3Mod() { Name = name, Href = href, IsOK = false, Message = $"Mod '{name}' non disponible sur le Workshop." });
+                    mods.Add(new SetupArma3Mod() { Name = mod.Name, Href = mod.Href, IsOK = false, Message = $"Mod '{mod.Name}' non disponible sur le Workshop." });
                 }
             }
             return mods;

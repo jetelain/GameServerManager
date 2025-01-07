@@ -8,6 +8,7 @@ using System.Xml.Linq;
 using GameServerManagerWebApp.Entites;
 using GameServerManagerWebApp.Models;
 using GameServerManagerWebApp.Services;
+using GameServerManagerWebApp.Services.Arma3Mods;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,11 +23,13 @@ namespace GameServerManagerWebApp.Controllers
     {
         private readonly GameServerManagerContext _context;
         private readonly GameServerService _service;
+        private readonly IArmaModManager _modManager;
 
-        public AdminModsetsController(GameServerManagerContext context, GameServerService service)
+        public AdminModsetsController(GameServerManagerContext context, GameServerService service, IArmaModManager modManager)
         {
             _context = context;
             _service = service;
+            _modManager = modManager;
         }
 
         // GET: Modsets
@@ -50,22 +53,27 @@ namespace GameServerManagerWebApp.Controllers
                 return NotFound();
             }
 
-            var servers = await _context.GameServers
-                .Where(s => s.Type == GameServerType.Arma3)
-                .Include(s => s.HostServer)
-                .ToListAsync();
+            var servers = await _context.HostServers.ToListAsync();
 
             modset.Servers = new List<ModesetGameServerMods>();
 
-            foreach (var server in servers
-                .Select(s => s.HostServer)
-                .Distinct()
-                .Select(h => servers.First(s => s.HostServer == h)))
+            foreach (var server in servers)
             {
+                // ModsetModViewModel
+                var serverMods = await _modManager.GetInstalledMods(server);
+                var modsetMods = ModsetFileHelper.GetModsetEntries(XDocument.Parse(modset.DefinitionFile));
+
+
                 modset.Servers.Add(new ModesetGameServerMods()
                 {
-                    GameServer = server,
-                    Mods = await _service.AnalyseModsetOnServer(modset, server)
+                    HostServer = server,
+                    Mods = modsetMods.Select(m => new ModsetModViewModel()
+                    {
+                        Name = m.Name,
+                        SteamId = m.SteamId,
+                        Href = m.Href,
+                        Installed = serverMods.FirstOrDefault(sm => sm.ModSteamId == m.SteamId)
+                    }).ToList()
                 });
             }
             return View(modset);
