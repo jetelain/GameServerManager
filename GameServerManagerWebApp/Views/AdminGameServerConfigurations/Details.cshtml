@@ -20,6 +20,10 @@
 <p>
     <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@Model.GameServerConfigurationID">Modifier</a>
     <a class="btn btn-sm btn-outline-primary" asp-controller="Home" asp-action="Config" asp-route-id="@Model.GameServerConfigurationID" asp-route-t="@Model.AccessToken"><i class="fas fa-external-link-square-alt"></i> Page publique</a>
+    @if (!Model.IsActive)
+    {
+        <a class="btn btn-sm btn-outline-danger ml-2" asp-action="Delete" asp-route-id="@Model.GameServerConfigurationID"><i class="fas fa-trash-alt"></i> Supprimer</a>
+    }
 </p>
 <div>
     <dl class="row">

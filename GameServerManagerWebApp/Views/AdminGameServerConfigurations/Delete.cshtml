@@ -1,105 +1,94 @@
 ﻿@model GameServerManagerWebApp.Entites.GameServerConfiguration
 
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Supprimer une configuration";
+}
+@section NavBar {
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="AdminGameServers" asp-action="Index">Serveurs</a></li>
+            <li class="breadcrumb-item"><a asp-controller="AdminGameServers" asp-action="Details" asp-route-id="@Model.GameServerID">@Model.GameServer.Label</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.GameServerConfigurationID">@Model.Label</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@ViewData["Title"]</li>
+        </ol>
+    </nav>
 }
 
-<h1>Delete</h1>
+@section Title { <h1><span>@ViewData["Title"]</span></h1> }
 
-<h3>Are you sure you want to delete this?</h3>
+<h3>Êtes vous sûre de vouloir supprimer cette configuration?</h3>
 <div>
-    <h4>GameServerConfiguration</h4>
-    <hr />
     <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsActive)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsActive)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.AccessToken)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.AccessToken)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.GameServer)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.GameServer.GameServerID)
-        </dd class>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ServerName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ServerName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ServerPassword)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ServerPassword)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ServerMission)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ServerMission)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.VoipServer)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.VoipServer)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.VoipChannel)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.VoipChannel)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.VoipPassword)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.VoipPassword)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.EventHref)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.EventHref)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.EventImage)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.EventImage)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Modset)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Modset.ModsetID)
-        </dd class>
-        <dt class = "col-sm-2">
+        <dt class = "col-sm-4">
             @Html.DisplayNameFor(model => model.Label)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class = "col-sm-8">
             @Html.DisplayFor(model => model.Label)
         </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.LastChangeUTC)
+        <dt class = "col-sm-4">
+            @Html.DisplayNameFor(model => model.GameServer)
         </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.LastChangeUTC)
+        <dd class = "col-sm-8">
+            @Html.DisplayFor(model => model.GameServer.Label)
+        </dd class>
+        <dt class = "col-sm-4">
+            @Html.DisplayNameFor(model => model.ServerName)
+        </dt>
+        <dd class = "col-sm-8">
+            @Html.DisplayFor(model => model.ServerName)
         </dd>
+        <dt class = "col-sm-4">
+            @Html.DisplayNameFor(model => model.ServerPassword)
+        </dt>
+        <dd class = "col-sm-8">
+            @Html.DisplayFor(model => model.ServerPassword)
+        </dd>
+        <dt class = "col-sm-4">
+            @Html.DisplayNameFor(model => model.ServerMission)
+        </dt>
+        <dd class = "col-sm-8">
+            @Html.DisplayFor(model => model.ServerMission)
+        </dd>
+        <dt class = "col-sm-4">
+            @Html.DisplayNameFor(model => model.VoipServer)
+        </dt>
+        <dd class = "col-sm-8">
+            @Html.DisplayFor(model => model.VoipServer)
+        </dd>
+        <dt class = "col-sm-4">
+            @Html.DisplayNameFor(model => model.VoipChannel)
+        </dt>
+        <dd class = "col-sm-8">
+            @Html.DisplayFor(model => model.VoipChannel)
+        </dd>
+        <dt class = "col-sm-4">
+            @Html.DisplayNameFor(model => model.VoipPassword)
+        </dt>
+        <dd class = "col-sm-8">
+            @Html.DisplayFor(model => model.VoipPassword)
+        </dd>
+        <dt class = "col-sm-4">
+            @Html.DisplayNameFor(model => model.EventHref)
+        </dt>
+        <dd class = "col-sm-8">
+            @Html.DisplayFor(model => model.EventHref)
+        </dd>
+        <dt class = "col-sm-4">
+            @Html.DisplayNameFor(model => model.EventImage)
+        </dt>
+        <dd class = "col-sm-8">
+            @Html.DisplayFor(model => model.EventImage)
+        </dd>
+        <dt class = "col-sm-4">
+            @Html.DisplayNameFor(model => model.Modset)
+        </dt>
+        <dd class = "col-sm-8">
+            @Html.DisplayFor(model => model.Modset.Label)
+        </dd class>
     </dl>
     
     <form asp-action="Delete">
         <input type="hidden" asp-for="GameServerConfigurationID" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
+        <input type="submit" value="Supprimer" class="btn btn-danger" />
     </form>
 </div>

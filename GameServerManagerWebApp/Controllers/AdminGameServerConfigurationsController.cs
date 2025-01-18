@@ -428,11 +428,11 @@ namespace GameServerManagerWebApp.Controllers
             var gameServerConfiguration = await _context.GameServerConfigurations.FindAsync(id);
             if (gameServerConfiguration.IsActive)
             {
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Details), new { id });
             }
             _context.GameServerConfigurations.Remove(gameServerConfiguration);
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(AdminGameServersController.Details), "AdminGameServers", new { id = gameServerConfiguration.GameServerID  });
         }
 
         private bool GameServerConfigurationExists(int id)
