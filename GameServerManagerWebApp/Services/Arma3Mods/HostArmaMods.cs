@@ -223,7 +223,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
         private static void WriteAllLines(SftpClient sftp, IEnumerable<string> contents)
         {
             using var stream = sftp.Open("/home/arma3-mods/arma3-mods.txt", FileMode.Create);
-            using var writer = new StreamWriter(stream, Encoding.UTF8);
+            using var writer = new StreamWriter(stream, new UTF8Encoding(false));
             foreach (var line in contents)
             {
                 writer.WriteLine(line);
