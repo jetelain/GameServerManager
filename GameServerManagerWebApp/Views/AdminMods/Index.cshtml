@@ -28,9 +28,13 @@
         <form method="post">
             <a class="btn btn-primary" asp-action="Add" asp-route-id="@server.Server.HostServerID">Ajouter des mods</a>
             <button class="btn btn-outline-primary" asp-action="UpdateNow" asp-route-id="@server.Server.HostServerID">Mise à jour manuelle</button>
-            @if (mods.Any(m => m.ModSize ==0))
+            @if (server.Mods.Any(m => m.ModSize == 0))
             {
                 <button class="btn btn-outline-danger" asp-action="RemoveEmptyMods" asp-route-id="@server.Server.HostServerID">Enlever les mods vides</button>
+            }
+            @if (mods.Select(m => m.ModSteamId).Distinct().Count() != server.Mods.Count)
+            {
+                <button class="btn btn-outline-danger" asp-action="RemoveDuplicates" asp-route-id="@server.Server.HostServerID">Enlever les doublons</button>
             }
         </form>
 

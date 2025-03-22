@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using GameServerManagerWebApp.Entites;
 using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.VisualBasic;
+using Renci.SshNet;
 
 #nullable enable
 
@@ -139,7 +143,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
                         return;
                     }
                     var newLines = beforeQuit.Concat(toAdd.Select(id => $"workshop_download_item 107410 {id}")).Concat(quitAndAfter);
-                    sftp.WriteAllLines("/home/arma3-mods/arma3-mods.txt", newLines);
+                    WriteAllLines(sftp, newLines);
                     added.AddRange(toAdd);
                 });
 
@@ -181,7 +185,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
                         return !match.Success || !steamIds.Contains(match.Groups[1].Value);
                     }).ToList();
 
-                    sftp.WriteAllLines("/home/arma3-mods/arma3-mods.txt", newLines);
+                    WriteAllLines(sftp, newLines);
                 });
             }
             finally
@@ -191,5 +195,39 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
             return true; // already installing
         }
 
+        public async Task<bool> RemoveDuplicates(ISshService sshService)
+        {
+            await installSemaphore.WaitAsync();
+            try
+            {
+                if (install != null && !install.IsCompleted)
+                {
+                    return false;
+                }
+
+                await sshService.RunSftpAsync(new HostServer { Address = Address, SshUserName = SshUserName }, async sftp =>
+                {
+                    var ok = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    var lines = sftp.ReadAllLines("/home/arma3-mods/arma3-mods.txt");
+                    var newLines = lines.Where(line => ok.Add(line)).ToList();
+                    WriteAllLines(sftp, newLines);
+                });
+            }
+            finally
+            {
+                installSemaphore.Release();
+            }
+            return true; // already installing
+        }
+
+        private static void WriteAllLines(SftpClient sftp, IEnumerable<string> contents)
+        {
+            using var stream = sftp.Open("/home/arma3-mods/arma3-mods.txt", FileMode.Create);
+            using var writer = new StreamWriter(stream, Encoding.UTF8);
+            foreach (var line in contents)
+            {
+                writer.WriteLine(line);
+            }
+        }
     }
 }

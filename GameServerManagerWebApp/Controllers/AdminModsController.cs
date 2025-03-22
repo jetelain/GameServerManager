@@ -113,6 +113,18 @@ namespace GameServerManagerWebApp.Controllers
             }
             return RedirectToAction(nameof(Index));
         }
-        
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveDuplicates(int id)
+        {
+            var server = await _context.HostServers.FindAsync(id);
+            if (server == null)
+            {
+                return NotFound();
+            }
+            await _modManager.RemoveDuplicates(server);
+            return RedirectToAction(nameof(Index));
+        }
     }
 }
