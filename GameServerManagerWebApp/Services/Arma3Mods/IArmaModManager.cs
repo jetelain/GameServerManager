@@ -17,5 +17,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
         Task<List<InstalledMod>> GetInstalledMods(HostServer server);
 
         Task<ModsAddResult> Add(HostServer server, List<string> modList);
+
+        Task<bool> RemoveFromList(HostServer server, List<string> modList);
     }
 }

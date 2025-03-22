@@ -15,6 +15,8 @@
 
 @foreach(var server in Model)
 {
+    var mods = ViewData["Sort"] as string == "ModSize" ? server.Mods.OrderByDescending(mbox => mbox.ModSize) : server.Mods.OrderBy(mbox => mbox.ModName);
+
     if(server.IsInstalling)
     {
         <p class="alert alert-warning">
@@ -26,6 +28,10 @@
         <form method="post">
             <a class="btn btn-primary" asp-action="Add" asp-route-id="@server.Server.HostServerID">Ajouter des mods</a>
             <button class="btn btn-outline-primary" asp-action="UpdateNow" asp-route-id="@server.Server.HostServerID">Mise à jour manuelle</button>
+            @if (mods.Any(m => m.ModSize ==0))
+            {
+                <button class="btn btn-outline-danger" asp-action="RemoveEmptyMods" asp-route-id="@server.Server.HostServerID">Enlever les mods vides</button>
+            }
         </form>
 
         if (server.LastInstall != null)
@@ -47,26 +53,30 @@
                     Identifiant
                 </th>
                 <th>
-                    Nom
+                    <a asp-action="Index">Nom</a>
                 </th>
                 <th class="text-right">
-                    Taille (Mo)
+                    <a asp-action="Index" asp-route-sort="ModSize">Taille (Mo)</a>
                 </th>
                 <th></th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var item in server.Mods.OrderBy(mbox => mbox.ModName))
+            @foreach (var item in mods)
             {
                 <tr>
                     <td>
-                        @item.ModSteamId
+                        <a href="https://steamcommunity.com/workshop/filedetails/?id=@item.ModSteamId">@item.ModSteamId</a>
                     </td>
                     <td>
                         @item.ModName
                     </td>
                     <td class="text-right">
-                        @Math.Round(item.ModSize / 1024.0 / 1024.0, 2).ToString("#,0.00")
+                        @if (item.ModSize == 0) {
+                            <span class="text-danger">Vide</span>
+                        } else {
+                            @Math.Round(item.ModSize / 1024.0 / 1024.0, 2).ToString("#,0.00")
+                        }
                     </td>
                     <td>
 

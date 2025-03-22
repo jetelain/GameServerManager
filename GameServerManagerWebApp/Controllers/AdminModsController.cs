@@ -21,7 +21,7 @@ namespace GameServerManagerWebApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string sort = "")
         {
             var infos = new List<HostModsViewModel>();
             var servers = await _context.HostServers.ToListAsync();
@@ -37,6 +37,7 @@ namespace GameServerManagerWebApp.Controllers
                 }
                 infos.Add(info);
             }
+            ViewBag.Sort = sort;
             return View(infos);
         }
 
@@ -95,5 +96,23 @@ namespace GameServerManagerWebApp.Controllers
 
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveEmptyMods(int id)
+        {
+            var server = await _context.HostServers.FindAsync(id);
+            if (server == null)
+            {
+                return NotFound();
+            }
+            var mods = await _modManager.GetInstalledMods(server); ;
+            var emptyMods = mods.Where(m => m.ModSize == 0).Select(m => m.ModSteamId).ToList();
+            if (emptyMods.Count > 0)
+            {
+                await _modManager.RemoveFromList(server, emptyMods);
+            }
+            return RedirectToAction(nameof(Index));
+        }
+        
     }
 }

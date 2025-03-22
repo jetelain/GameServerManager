@@ -34,6 +34,10 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
             {
                 return null;
             }
+            if (install.IsFaulted)
+            {
+                return new ModsInstallResult(DateTime.UtcNow, DateTime.UtcNow, -1, install.Exception?.Message);
+            }
             return install.Result;
         }
 
@@ -150,6 +154,41 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
                 installSemaphore.Release();
             }
             return new ModsAddResult(added, existing); // already installing
+        }
+
+        public async Task<bool> RemoveModsFromList(ISshService sshService, List<string> steamIds)
+        {
+            if (steamIds.Any(s => !long.TryParse(s, out _)))
+            {
+                throw new ArgumentException("Invalid steamIds");
+            }
+
+            await installSemaphore.WaitAsync();
+            try
+            {
+                if (install != null && !install.IsCompleted)
+                {
+                    return false;
+                }
+
+                await sshService.RunSftpAsync(new HostServer { Address = Address, SshUserName = SshUserName }, async sftp =>
+                {
+                    var lines = sftp.ReadAllLines("/home/arma3-mods/arma3-mods.txt");
+
+                    var newLines = lines.Where(line =>
+                    {
+                        var match = regex.Match(line);
+                        return !match.Success || !steamIds.Contains(match.Groups[1].Value);
+                    }).ToList();
+
+                    sftp.WriteAllLines("/home/arma3-mods/arma3-mods.txt", newLines);
+                });
+            }
+            finally
+            {
+                installSemaphore.Release();
+            }
+            return true; // already installing
         }
 
     }

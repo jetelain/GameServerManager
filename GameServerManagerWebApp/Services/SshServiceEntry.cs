@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using GameServerManagerWebApp.Entites;
 using Renci.SshNet;
+using Renci.SshNet.Common;
 
 namespace GameServerManagerWebApp.Services
 {
@@ -30,6 +31,13 @@ namespace GameServerManagerWebApp.Services
             await sshSemaphore.WaitAsync();
             try
             {
+                return (await ConnectSshClient(cancellationToken)).RunCommand(commandText);
+            }
+            catch (SshOperationTimeoutException)
+            {
+                // Try again once
+                sshClient?.Dispose();
+                sftpClient = null;
                 return (await ConnectSshClient(cancellationToken)).RunCommand(commandText);
             }
             finally

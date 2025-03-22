@@ -50,6 +50,11 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
             return GetEntry(server).AddMods(sshService, modList);
         }
 
+        public Task<bool> RemoveFromList(HostServer server, List<string> modList)
+        {
+            return GetEntry(server).RemoveModsFromList(sshService, modList);
+        }
+
         public Task<List<InstalledMod>> GetInstalledMods(HostServer server)
         {
             return GetEntry(server).GetInstalledMods(sshService);
