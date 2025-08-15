@@ -109,7 +109,7 @@
     </p>
     }
 
-    @if (Model.Modset != null)
+    @if (Model.Modset != null && Model.GameServer.Type == GameServerType.Arma3)
     {
     <h2 class="mt-5"><a name="install"></a>Comment installer le Modpack ?</h2>
 
@@ -147,9 +147,12 @@
 
     }
 
-    <h2 class="mt-5"><a name="connect"></a>Comment se connecter au serveur ?</h2>
-    <div class="row">
-        <div class="col-md-6 mb-3">
+    @if (Model.GameServer.Type == GameServerType.Arma3)
+    {
+
+        <h2 class="mt-5"><a name="connect"></a>Comment se connecter au serveur ?</h2>
+        <div class="row">
+            <div class="col-md-6 mb-3">
             <img class="mw-100" src="~/img/server/1.jpg" /><br />
             1. Après avoir configuré les mods appropriés, aller dans l'onglet "SERVEURS".
         </div>
@@ -169,8 +172,31 @@
             <img class="mw-100" src="~/img/server/5.jpg" /><br />
             5. Si une fenêtre apparait, cliquer sur "GARDER LA SELECTION EN COURS ET SE CONNECTER" (bouton sur fond noir).
         </div>
-    </div>
+        </div>
+    }
+    else if (Model.GameServer.Type == GameServerType.ArmaReforger)
+    {
+        <h2 class="mt-5"><a name="connect"></a>Comment se connecter au serveur ?</h2>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <img class="mw-100" src="~/img/reforger/1.jpg" /><br />
+                1. Lancer le jeu, aller dans "Multijoueur".
+            </div>
+            <div class="col-md-6 mb-3">
+                <img class="mw-100" src="~/img/reforger/2.jpg" /><br />
+                2. Cliquer sur le bouton "Connexion directe" en bas au centre de l'écran.
+            </div>
+            <div class="col-md-6 mb-3">
+                <img class="mw-100" src="~/img/reforger/3.jpg" /><br />
+                3. Saisir l'adresse du serveur, et le numéro de port.
+            </div>
+            <div class="col-md-6 mb-3">
+                <img class="mw-100" src="~/img/reforger/4.jpg" /><br />
+                4. Appuyer sur Espace pour se déployer.
+            </div>
+        </div>
 
+    }
 
     @if (!string.IsNullOrEmpty(Model.VoipServer))
     {
