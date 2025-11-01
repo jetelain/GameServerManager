@@ -37,7 +37,7 @@ namespace GameServerManagerWebApp.Services
             {
                 // Try again once
                 sshClient?.Dispose();
-                sftpClient = null;
+                sshClient = null;
                 return (await ConnectSshClient(cancellationToken)).RunCommand(commandText);
             }
             finally
