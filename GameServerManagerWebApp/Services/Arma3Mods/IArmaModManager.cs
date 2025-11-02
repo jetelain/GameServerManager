@@ -20,6 +20,8 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
 
         Task<bool> RemoveFromList(HostServer server, List<string> modList);
 
+        Task<bool> Uninstall(HostServer server, IEnumerable<long> modList);
+
         Task<bool> RemoveDuplicates(HostServer server);
     }
 }

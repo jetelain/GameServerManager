@@ -25,6 +25,10 @@ namespace GameServerManagerWebApp.Controllers
         {
             var infos = new List<HostModsViewModel>();
             var servers = await _context.HostServers.ToListAsync();
+            var modpacks = await _context.Modsets.ToListAsync();
+
+            var usedMods = modpacks.SelectMany(m => m.ConfigurationFile.Split(';')).Select(m => m.Trim('@', ' ', '\r', '\n')).Where(m => !string.IsNullOrEmpty(m)).Distinct().ToHashSet();
+
             foreach (var server in servers)
             {
                 var info = new HostModsViewModel(server);
@@ -38,6 +42,7 @@ namespace GameServerManagerWebApp.Controllers
                 infos.Add(info);
             }
             ViewBag.Sort = sort;
+            ViewBag.UsedMods = usedMods;
             return View(infos);
         }
 
@@ -124,6 +129,20 @@ namespace GameServerManagerWebApp.Controllers
                 return NotFound();
             }
             await _modManager.RemoveDuplicates(server);
+            return RedirectToAction(nameof(Index));
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Remove(int id, long modSteamId)
+        {
+            var server = await _context.HostServers.FindAsync(id);
+            if (server == null)
+            {
+                return NotFound();
+            }
+            await _modManager.Uninstall(server, new [] { modSteamId });
             return RedirectToAction(nameof(Index));
         }
     }

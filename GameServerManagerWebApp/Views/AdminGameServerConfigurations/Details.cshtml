@@ -66,9 +66,14 @@
 @if (Model.GameServer.Type == GameServerType.Arma3)
 {
     <h2>Configuration rapide</h2>
-    <p>
+
+    <form method="post" class="mb-3 mt-2">
         <a class="btn btn-sm btn-outline-primary" asp-action="EditConfig" asp-route-id="@Model.GameServerConfigurationID">Modifier</a>
-    </p>
+        @if (Model.IsActive)
+        {
+            <button asp-action="ApplyModset" asp-route-id="@Model.GameServerConfigurationID" class="btn btn-sm btn-outline-secondary">Réappliquer le modpack</button>
+        }
+    </form>
     <div>
         <dl class="row">
             <dt class="col-sm-2">

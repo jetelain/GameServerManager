@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using BIS.Core.Config;
 using GameServerManagerWebApp.Entites;
 using GameServerManagerWebApp.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Renci.SshNet;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace GameServerManagerWebApp.Controllers
 {
@@ -500,5 +502,48 @@ namespace GameServerManagerWebApp.Controllers
 
             return RedirectToAction(nameof(Details), new { id = file.GameServerConfigurationID });
         }
+
+        [ValidateAntiForgeryToken]
+        [HttpPost]
+        public async Task<IActionResult> ApplyModset(int id)
+        {
+            var gameServerConfiguration = await _context.GameServerConfigurations
+                .Include(g => g.GameServer).ThenInclude(g => g.HostServer)
+                .Include(g => g.Modset)
+                .Include(g => g.Files)
+                .FirstOrDefaultAsync(m => m.GameServerConfigurationID == id);
+
+            if (gameServerConfiguration == null)
+            {
+                return NotFound();
+            }
+
+            var file = await _context.GameConfigurationFiles
+                .Include(g => g.Configuration).ThenInclude(g => g.GameServer).ThenInclude(e => e.HostServer)
+                .Include(g => g.Configuration).ThenInclude(g => g.Files)
+                .FirstOrDefaultAsync(m => m.GameServerConfigurationID == id && m.Path == "mods.txt");
+
+            if (file == null)
+            {
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            file.Content = (await _context.Modsets.FindAsync(gameServerConfiguration.ModsetID)).ConfigurationFile;
+
+            _context.Update(file);
+
+            await _context.SaveChangesAsync();
+
+            if (file.Configuration.IsActive)
+            {
+                await _sshService.RunSftpAsync(file.Configuration.GameServer.HostServer, async client =>
+                {
+                    _service.WriteAllText(client, _service.GetFileFullPath(_service.GetConfig(file.Configuration.GameServer), file.Path), file.Content ?? string.Empty);
+                });
+            }
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        // 
     }
 }

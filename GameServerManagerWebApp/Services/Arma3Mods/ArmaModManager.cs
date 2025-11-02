@@ -55,6 +55,11 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
             return GetEntry(server).RemoveModsFromList(sshService, modList);
         }
 
+        public Task<bool> Uninstall(HostServer server, IEnumerable<long> modList)
+        {
+            return GetEntry(server).Uninstall(sshService, modList);
+        }
+
         public Task<bool> RemoveDuplicates(HostServer server)
         {
             return GetEntry(server).RemoveDuplicates(sshService);

@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Mods";
+    var usedMods = (HashSet<string>)ViewBag.UsedMods;
 }
 
 @section NavBar {
@@ -83,7 +84,12 @@
                         }
                     </td>
                     <td>
-
+                        @if (!usedMods.Contains(item.ModSteamId) && !server.IsInstalling)
+                        {
+                            <form method="post" asp-action="Remove" asp-route-id="@server.Server.HostServerID" asp-route-modSteamId="@item.ModSteamId">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                            </form>
+                        }
                     </td>
                 </tr>
             }

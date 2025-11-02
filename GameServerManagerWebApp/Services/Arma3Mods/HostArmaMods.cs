@@ -86,7 +86,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
 
             var lines = await sshService.RunSftpAsync(server, async sftp => sftp.ReadAllLines("/home/arma3-mods/arma3-mods.txt"));
 
-            foreach(var line in lines)
+            foreach (var line in lines)
             {
                 var match = regex.Match(line);
                 if (match.Success)
@@ -228,6 +228,45 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
             {
                 writer.WriteLine(line);
             }
+        }
+
+        internal async Task<bool> Uninstall(ISshService sshService, IEnumerable<long> modList)
+        {
+            await installSemaphore.WaitAsync();
+            try
+            {
+                if (install != null && !install.IsCompleted)
+                {
+                    return false;
+                }
+
+                var hostServer = new HostServer { Address = Address, SshUserName = SshUserName };
+
+                var steamIds = modList.Select(m => m.ToString()).ToHashSet();
+
+                await sshService.RunSftpAsync(hostServer, async sftp =>
+                {
+                    var lines = sftp.ReadAllLines("/home/arma3-mods/arma3-mods.txt");
+
+                    var newLines = lines.Where(line =>
+                    {
+                        var match = regex.Match(line);
+                        return !match.Success || !steamIds.Contains(match.Groups[1].Value);
+                    }).ToList();
+
+                    WriteAllLines(sftp, newLines);
+                });
+
+                foreach (var mod in modList)
+                {
+                    var result = await sshService.RunCommandAsync(hostServer, $"rm -rf /home/arma3-mods/steamapps/workshop/content/107410/{mod}");
+                }
+            }
+            finally
+            {
+                installSemaphore.Release();
+            }
+            return true;
         }
     }
 }
