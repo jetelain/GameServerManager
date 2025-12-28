@@ -178,8 +178,19 @@ namespace GameServerManagerWebApp.Services
                 };
             }
 
-            
-            throw new NotImplementedException($"Unsupported server type {server.Type} for {server.GameServerID}");
+            return new GameConfig()
+            {
+                Server = server.HostServer,
+                Name = server.UserName + "@" + server.HostServer.Name,
+                TopUserName = TopTruncate(server.UserName),
+                StartCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/start.sh",
+                StopCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/stop.sh",
+                UpdateCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/updateserver.sh",
+                ConfigFiles = new string[0],
+                GameBaseDirectory = server.BasePath.TrimEnd('/'),
+                Command = new string[0],
+                OtherUsers = new string[0]
+            };
         }
 
         private string TopTruncate(string userName)
