@@ -178,8 +178,8 @@ namespace GameServerManagerWebApp.Services
                 };
             }
 
-            ///home/squad/.steam/steamcmd/server/
-            throw new NotImplementedException();
+            
+            throw new NotImplementedException($"Unsupported server type {server.Type} for {server.GameServerID}");
         }
 
         private string TopTruncate(string userName)
