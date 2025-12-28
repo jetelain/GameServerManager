@@ -1,10 +1,10 @@
 ﻿using System;
 
-namespace GameServerManagerWebApp.Services.Arma3Mods
+namespace GameServerManagerWebApp.Services
 {
-    public class ModsInstallResult
+    public class InstallResult
     {
-        public ModsInstallResult(DateTime started, DateTime finished, int exitStatus, string result)
+        public InstallResult(DateTime started, DateTime finished, int exitStatus, string result)
         {
             Started = started;
             Finished = finished;

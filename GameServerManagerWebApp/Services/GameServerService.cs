@@ -30,9 +30,14 @@ namespace GameServerManagerWebApp.Services
         private readonly IHttpClientFactory _factory;
         private readonly ISshService _sshService;
 
+        private readonly static object locker = new object();
+        private readonly static List<GameServerState> gameServersState = new List<GameServerState>();
+
         internal static readonly Regex PasswordRegex = new Regex(@"password\s*=\s*""(.*)""", RegexOptions.IgnoreCase);
         internal static readonly Regex LabelRegex = new Regex(@"hostname\s*=\s*""(.*)""", RegexOptions.IgnoreCase);
         internal static readonly Regex MissionRegex = new Regex(@"class\s+Missions\s*{[^}]*class\s+[a-zA-Z0-9]+\s*{\s*template\s*=\s*([^;]*);", RegexOptions.IgnoreCase| RegexOptions.Multiline);
+
+
 
         public GameServerService(ILogger<GameServerService> logger, IConfiguration config, GameServerManagerContext context, IHttpClientFactory factory, ISshService sshService)
         {
@@ -71,16 +76,19 @@ namespace GameServerManagerWebApp.Services
         internal GameServerInfo GetGameInfos(GameServer g, List<ProcessInfo> processes)
         {
             var game = GetConfig(g);
+            var state = GetOrCreateState(g);
             var gameProcesses = processes.Where(p => (p.User == game.TopUserName || game.OtherUsers.Contains(p.User)) && game.Command.Contains(p.Cmd) && game.Server == p.Server).ToList();
 
             return new GameServerInfo()
             {
                 GameServer = g,
                 Name = game.Name,
-                Running = gameProcesses.Any(p => p.User == game.TopUserName),
+                IsRunning = gameProcesses.Any(p => p.User == game.TopUserName),
                 Cpu = gameProcesses.Sum(p => p.Cpu),
                 Mem = gameProcesses.Sum(p => p.Mem),
-                Processes = gameProcesses
+                Processes = gameProcesses,
+                IsUpdating = state.IsUpdating,
+                LastUpdateResult = state.IsUpdating ? null : state.GetLastUpdateResult()
             };
         }
 
@@ -99,6 +107,7 @@ namespace GameServerManagerWebApp.Services
                     TopUserName = TopTruncate(server.UserName),
                     StartCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/start.sh",
                     StopCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/stop.sh",
+                    // UpdateCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/updateserver.sh", ==> Disabled as we need to login to steamcmd, may prompt for password and steam guard code
                     ConfigFiles = new[]{
                         "server.cfg",
                         "basic.cfg",
@@ -123,6 +132,7 @@ namespace GameServerManagerWebApp.Services
                     TopUserName = TopTruncate(server.UserName),
                     StartCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/start.sh",
                     StopCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/stop.sh",
+                    UpdateCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/updateserver.sh",
                     ConfigFiles = new[]{
                         "SquadGame/ServerConfig/Admins.cfg",
                         "SquadGame/ServerConfig/Bans.cfg",
@@ -156,6 +166,7 @@ namespace GameServerManagerWebApp.Services
                     TopUserName = TopTruncate(server.UserName),
                     StartCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/start.sh",
                     StopCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/stop.sh",
+                    UpdateCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/updateserver.sh",
                     ConfigFiles = new[] {
                         "config.json"
                     },
@@ -190,8 +201,15 @@ namespace GameServerManagerWebApp.Services
             return processes;
         }
 
-        internal async Task StartGameServer(ClaimsPrincipal user, GameServerConfiguration currentConfig)
+        internal async Task<bool> StartGameServer(ClaimsPrincipal user, GameServerConfiguration currentConfig)
         {
+            var state = GetOrCreateState(currentConfig.GameServer);
+
+            if (state.IsUpdating)
+            {
+                return false;
+            }
+
             await LogServerEvent(user, currentConfig.GameServer, GameLogEventType.ServerStart);
 
             var game = GetConfig(currentConfig.GameServer);
@@ -201,6 +219,8 @@ namespace GameServerManagerWebApp.Services
             await _sshService.RunCommandAsync(game.Server, game.StartCmd);
 
             await Task.Delay(100);
+
+            return true;
         }
 
         internal async Task ApplyAllConfiguration(GameServerConfiguration currentConfig)
@@ -540,6 +560,71 @@ namespace GameServerManagerWebApp.Services
                     i++;
                 }
                 client.RenameFile(targetFile, backupName);
+            }
+        }
+
+        internal async Task AskUpdateGameServer(ClaimsPrincipal user, GameServer gameServer)
+        {
+            await LogServerEvent(user, gameServer, GameLogEventType.UpdateServer);
+
+            var game = GetConfig(gameServer);
+
+            var state = GetOrCreateState(gameServer);
+
+            if (state.IsUpdating)
+            {
+                return;
+            }
+
+            state.UpdateTask = Task.Run(async () => await DoUpdateGameServer(state, game));
+        }
+
+        private async Task<InstallResult> DoUpdateGameServer(GameServerState state, GameConfig game)
+        {
+            await state.UpdateSemaphore.WaitAsync();
+            try
+            {
+                var started = DateTime.UtcNow;
+
+                await _sshService.RunCommandAsync(game.Server, game.StopCmd);
+
+                await Task.Delay(2500);
+
+                var result = await _sshService.RunLongCommandAsync(game.Server, game.UpdateCmd);
+
+                var finished = DateTime.UtcNow;
+
+                return new InstallResult(started, finished, result.ExitStatus, result.Error + result.Result);
+            }
+            finally
+            {
+                state.UpdateSemaphore.Release();
+            }
+        }
+
+        private GameServerState GetOrCreateState(GameServer server)
+        {
+            lock (locker)
+            {
+                var state = gameServersState.FirstOrDefault(s => s.GameServerID == server.GameServerID);
+                if (state == null)
+                {
+                    state = new GameServerState()
+                    {
+                        GameServerID = server.GameServerID
+                    };
+                    gameServersState.Add(state);
+                }
+                return state;
+            }
+        }
+
+        internal void ClearUpdateResult(GameServer gameServer)
+        {
+            var state = GetOrCreateState(gameServer);
+            if (!state.IsUpdating)
+            {
+                state.UpdateTask = null;
             }
         }
     }

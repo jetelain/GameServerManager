@@ -38,7 +38,11 @@
                 <td><a asp-action="Details" asp-route-id="@game.GameServer.GameServerID">@game.GameServer.Label</a></td>
                 <td>@Html.DisplayFor(_ => game.GameServer.Type)</td>
                 <td>
-                    @if (game.Running)
+                    @if (game.IsUpdating)
+                    {
+                        <span class="badge badge-warning">Mise à jour</span>
+                    }
+                    else if (game.IsRunning)
                     {
                         <span class="badge badge-success">Démarré</span>
                     }

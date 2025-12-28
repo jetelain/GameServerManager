@@ -10,7 +10,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
     {
         bool IsInstalling(HostServer server);
 
-        ModsInstallResult? GetLastInstallResult(HostServer server);
+        InstallResult? GetLastInstallResult(HostServer server);
 
         Task RequestInstall(HostServer server);
 

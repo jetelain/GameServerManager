@@ -35,7 +35,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
             return GetEntry(server).IsInstalling;
         }
 
-        public ModsInstallResult? GetLastInstallResult(HostServer server)
+        public InstallResult? GetLastInstallResult(HostServer server)
         {
             return GetEntry(server).GetLastInstallResult();
         }

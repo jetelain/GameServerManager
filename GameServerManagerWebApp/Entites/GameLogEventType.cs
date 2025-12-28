@@ -5,6 +5,7 @@
         Connect,
         Disconnect,
         ServerStart,
-        ServerStop
+        ServerStop,
+        UpdateServer
     }
 }

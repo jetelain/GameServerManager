@@ -69,7 +69,10 @@ namespace GameServerManagerWebApp.Controllers
             {
                 return NotFound();
             }
-            await _service.StartGameServer(User, await GetActiveConfiguration(gameServer));
+            if (!await _service.StartGameServer(User, await GetActiveConfiguration(gameServer)))
+            {
+                return BadRequest("Failed to start server.");
+            }
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -421,6 +424,46 @@ namespace GameServerManagerWebApp.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Update(int id)
+        {
+            var gameServer = await _context.GameServers
+                .Include(s => s.SyncFiles)
+                .Include(s => s.HostServer)
+                .FirstOrDefaultAsync(g => g.GameServerID == id);
+
+            if (gameServer == null)
+            {
+                return NotFound();
+            }
+
+            await _service.AskUpdateGameServer(User, gameServer);
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ClearUpdateResult(int id)
+        {
+            var gameServer = await _context.GameServers
+                .Include(s => s.SyncFiles)
+                .Include(s => s.HostServer)
+                .FirstOrDefaultAsync(g => g.GameServerID == id);
+
+            if (gameServer == null)
+            {
+                return NotFound();
+            }
+
+            _service.ClearUpdateResult(gameServer);
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
 
         private bool GameServerExists(int id)
         {

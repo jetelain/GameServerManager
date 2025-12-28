@@ -20,7 +20,11 @@
         <tbody>
             <tr>
                 <td>
-                    @if (Model.Infos.Running)
+                    @if (Model.Infos.IsUpdating)
+                    {
+                        <span class="badge badge-warning">Mise à jour en cours</span>
+                    }
+                    else if (Model.Infos.IsRunning)
                     {
                         <span class="badge badge-success">Démarré</span>
                         <span class="small">(@Model.Infos.Processes.Count processus)</span>
@@ -43,15 +47,49 @@
                     {
                         <button class="btn btn-sm btn-outline-danger" asp-action="Stop" asp-route-id="@Model.GameServer.GameServerID"><i class="fas fa-stop"></i> Arrêter</button>
                     }
-                    @if (!Model.Infos.Running)
+                    @if (!Model.Infos.IsRunning && !Model.Infos.IsUpdating)
                     {
                         <button class="btn btn-sm btn-outline-success" asp-action="Start" asp-route-id="@Model.GameServer.GameServerID"><i class="fas fa-play"></i> Démarrer</button>
+                        @if (!string.IsNullOrEmpty(Model.Game.UpdateCmd))
+                        {
+                            <button class="btn btn-sm btn-outline-warning" asp-action="Update" asp-route-id="@Model.GameServer.GameServerID">Mettre à jour</button>
+                        }
                     }
                     <a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@Model.GameServer.GameServerID"><i class="fas fa-sync"></i> Actualiser</a>
                 </td>
             </tr>
         </tbody>
     </table>
+
+    @if (Model.Infos.LastUpdateResult != null )
+    {
+        <h2>Résultat de la mise à jour</h2>
+        <form method="post">
+        @if(Model.Infos.LastUpdateResult.ExitStatus == 0)
+        {
+            <div class="alert alert-success row" role="alert">
+                <div class="col-10">
+                    La mise à jour s'est terminée avec succès.
+                </div>
+                    <button asp-action="ClearUpdateResult" asp-route-id="@Model.GameServer.GameServerID" class="btn btn-sm btn-outline-success col-2">
+                    Fermer
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-danger row" role="alert">
+                <div class="col-10">
+                    La mise à jour a échoué.
+                </div>
+                <button asp-action="ClearUpdateResult" asp-route-id="@Model.GameServer.GameServerID" class="btn btn-sm btn-outline-danger col-2">
+                    Fermer
+                </button>
+            </div>
+        }
+        </form>
+        <pre>@Model.Infos.LastUpdateResult.Result</pre>
+    }
 
     <h2>Configurations</h2>
 

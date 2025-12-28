@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using GameServerManagerWebApp.Entites;
+using GameServerManagerWebApp.Services;
 using GameServerManagerWebApp.Services.Arma3Mods;
 
 namespace GameServerManagerWebApp.Models
@@ -14,6 +15,6 @@ namespace GameServerManagerWebApp.Models
         public bool IsInstalling { get; internal set; }
         public HostServer Server { get; }
         public List<InstalledMod> Mods { get; internal set; }
-        public ModsInstallResult LastInstall { get; internal set; }
+        public InstallResult LastInstall { get; internal set; }
     }
 }

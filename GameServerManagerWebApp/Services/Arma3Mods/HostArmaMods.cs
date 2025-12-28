@@ -7,8 +7,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using GameServerManagerWebApp.Entites;
-using Microsoft.AspNetCore.Hosting.Server;
-using Microsoft.VisualBasic;
 using Renci.SshNet;
 
 #nullable enable
@@ -18,7 +16,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
     internal class HostArmaMods
     {
         private readonly SemaphoreSlim installSemaphore = new SemaphoreSlim(1, 1);
-        private Task<ModsInstallResult>? install;
+        private Task<InstallResult>? install;
 
         public HostArmaMods(HostServer server)
         {
@@ -32,7 +30,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
 
         public bool IsInstalling => install != null && !install.IsCompleted;
 
-        public ModsInstallResult? GetLastInstallResult()
+        public InstallResult? GetLastInstallResult()
         {
             if (install == null || !install.IsCompleted)
             {
@@ -40,7 +38,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
             }
             if (install.IsFaulted)
             {
-                return new ModsInstallResult(DateTime.UtcNow, DateTime.UtcNow, -1, install.Exception?.Message);
+                return new InstallResult(DateTime.UtcNow, DateTime.UtcNow, -1, install.Exception?.Message);
             }
             return install.Result;
         }
@@ -62,7 +60,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
             }
         }
 
-        private async Task<ModsInstallResult> DoInstall(ISshService sshService)
+        private async Task<InstallResult> DoInstall(ISshService sshService)
         {
             var started = DateTime.UtcNow;
 
@@ -70,7 +68,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
 
             var finished = DateTime.UtcNow;
 
-            return new ModsInstallResult(started, finished, result.ExitStatus, result.Result);
+            return new InstallResult(started, finished, result.ExitStatus, result.Result);
         }
 
         private static readonly Regex regex = new Regex(@"workshop_download_item 107410 ([0-9]+)", RegexOptions.Compiled);

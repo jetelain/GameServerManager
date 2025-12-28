@@ -22,6 +22,8 @@ namespace GameServerManagerWebApp.Models
                         return $"{User} has started server";
                     case GameLogEventType.ServerStop:
                         return $"{User} has stopped server";
+                    case GameLogEventType.UpdateServer:
+                        return $"{User} has updated server";
                     default:
                         return Log.Type.ToString();
                 }
