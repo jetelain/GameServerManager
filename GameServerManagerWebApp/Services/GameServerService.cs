@@ -168,7 +168,8 @@ namespace GameServerManagerWebApp.Services
                     StopCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/stop.sh",
                     UpdateCmd = "sudo -H -u " + server.UserName + " /home/" + server.UserName + "/updateserver.sh",
                     ConfigFiles = new[] {
-                        "config.json"
+                        "config.json",
+                        "user/profile/ServerAdminTools_Config.json"
                     },
                     GameBaseDirectory = server.BasePath.TrimEnd('/'),
                     ConsoleDirectoryBase = server.BasePath.TrimEnd('/') + "/user/logs",
