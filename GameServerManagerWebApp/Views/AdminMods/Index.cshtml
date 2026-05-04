@@ -113,17 +113,16 @@
                     <td>
                         @if (!server.IsInstalling)
                         {
+                            <form class="d-inline-block" method="post" asp-action="Update" asp-route-id="@server.Server.HostServerID" asp-route-modSteamId="@item.ModSteamId">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Mettre à jour</button>
+                            </form>
+
                             @if (!usedMods.Contains(item.ModSteamId))
                             {
                                 <form class="d-inline-block" method="post" asp-action="Remove" asp-route-id="@server.Server.HostServerID" asp-route-modSteamId="@item.ModSteamId">
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
                                 </form>
                             }
-
-                            <form class="d-inline-block" method="post" asp-action="Update" asp-route-id="@server.Server.HostServerID" asp-route-modSteamId="@item.ModSteamId">
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">Mettre à jour</button>
-                            </form>
-                            
                         }
                     </td>
                 </tr>
