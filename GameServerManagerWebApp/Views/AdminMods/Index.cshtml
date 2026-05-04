@@ -41,9 +41,36 @@
 
         if (server.LastInstall != null)
         {
-            <p>
-                Dernière installation manuelle : @server.LastInstall.Finished.ToString("dd/MM/yyyy HH:mm:ss"), @(server.LastInstall.ExitStatus == 0 ? "OK" : $"Erreur {server.LastInstall.ExitStatus}")
-            </p>
+            
+            <form method="post" class="mt-5">
+                @if (server.LastInstall.ExitStatus == 0)
+                {
+                    <div class="alert alert-success" role="alert">
+                        <div class="row">
+                            <div class="col-10">
+                                La mise à jour des mods s'est terminée avec succès.
+                            </div>
+                            <button asp-action="ClearUpdateResult" asp-route-id="@server.Server.HostServerID" class="btn btn-sm btn-outline-success col-2">
+                                Fermer
+                            </button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-danger" role="alert">
+                        <div class="row">
+                            <div class="col-10">
+                                La mise à jour des mods a échoué.
+                            </div>
+                            <button asp-action="ClearUpdateResult" asp-route-id="@server.Server.HostServerID" class="btn btn-sm btn-outline-danger col-2">
+                                Fermer
+                            </button>
+                        </div>
+                    </div>
+                }
+            </form>
+            <pre>@server.LastInstall.Result</pre>
         }
     }
 
@@ -84,11 +111,19 @@
                         }
                     </td>
                     <td>
-                        @if (!usedMods.Contains(item.ModSteamId) && !server.IsInstalling)
+                        @if (!server.IsInstalling)
                         {
-                            <form method="post" asp-action="Remove" asp-route-id="@server.Server.HostServerID" asp-route-modSteamId="@item.ModSteamId">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                            @if (!usedMods.Contains(item.ModSteamId))
+                            {
+                                <form class="d-inline-block" method="post" asp-action="Remove" asp-route-id="@server.Server.HostServerID" asp-route-modSteamId="@item.ModSteamId">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                                </form>
+                            }
+
+                            <form class="d-inline-block" method="post" asp-action="Update" asp-route-id="@server.Server.HostServerID" asp-route-modSteamId="@item.ModSteamId">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Mettre à jour</button>
                             </form>
+                            
                         }
                     </td>
                 </tr>

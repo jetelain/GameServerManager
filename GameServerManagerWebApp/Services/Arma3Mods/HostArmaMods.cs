@@ -60,11 +60,39 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
             }
         }
 
+        public async Task RequestModsInstall(ISshService sshService, IEnumerable<long> steamIds)
+        {
+            await installSemaphore.WaitAsync();
+            try
+            {
+                if (install != null && !install.IsCompleted)
+                {
+                    return;
+                }
+                install = DoInstall(sshService, steamIds);
+            }
+            finally
+            {
+                installSemaphore.Release();
+            }
+        }
+
         private async Task<InstallResult> DoInstall(ISshService sshService)
         {
             var started = DateTime.UtcNow;
 
             var result = await sshService.RunLongCommandAsync(new HostServer { Address = Address, SshUserName = SshUserName }, "sudo -H -u arma3-mods /home/arma3-mods/update.sh");
+
+            var finished = DateTime.UtcNow;
+
+            return new InstallResult(started, finished, result.ExitStatus, result.Result);
+        }
+
+        private async Task<InstallResult> DoInstall(ISshService sshService, IEnumerable<long> steamIds)
+        {
+            var started = DateTime.UtcNow;
+
+            var result = await sshService.RunLongCommandAsync(new HostServer { Address = Address, SshUserName = SshUserName }, "sudo -H -u arma3-mods /home/arma3-mods/update-mod.sh " + string.Join(" ", steamIds));
 
             var finished = DateTime.UtcNow;
 
@@ -110,15 +138,10 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
             return mods;
         }
 
-        public async Task<ModsAddResult> AddMods(ISshService sshService, List<string> steamIds)
+        public async Task<ModsAddResult> AddMods(ISshService sshService, List<long> steamIds)
         {
-            if (steamIds.Any(s => !long.TryParse(s, out _)))
-            {
-                throw new ArgumentException("Invalid steamIds");
-            }
-
-            var added = new List<string>();
-            var existing = new List<string>();
+            var added = new List<long>();
+            var existing = new List<long>();
 
             await installSemaphore.WaitAsync();
             try
@@ -131,7 +154,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
                 await sshService.RunSftpAsync(new HostServer { Address = Address, SshUserName = SshUserName }, async sftp =>
                 {
                     var lines = sftp.ReadAllLines("/home/arma3-mods/arma3-mods.txt");
-                    var alreadyInstalled = lines.Select(l => regex.Match(l)).Where(l => l.Success).Select(l => l.Groups[1].Value).ToHashSet();
+                    var alreadyInstalled = lines.Select(l => regex.Match(l)).Where(l => l.Success).Select(l => l.Groups[1].Value).Select(long.Parse).ToHashSet();
                     var beforeQuit = lines.TakeWhile(lines => !lines.Contains("quit"));
                     var quitAndAfter = lines.Skip(beforeQuit.Count());
                     existing.AddRange(steamIds.Where(id => alreadyInstalled.Contains(id)));
@@ -148,7 +171,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
                 if (added.Count > 0)
                 {
                     // request the install
-                    install = DoInstall(sshService);
+                    install = DoInstall(sshService, added);
                 }
             }
             finally
@@ -158,13 +181,8 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
             return new ModsAddResult(added, existing); // already installing
         }
 
-        public async Task<bool> RemoveModsFromList(ISshService sshService, List<string> steamIds)
+        public async Task<bool> RemoveModsFromList(ISshService sshService, List<long> steamIds)
         {
-            if (steamIds.Any(s => !long.TryParse(s, out _)))
-            {
-                throw new ArgumentException("Invalid steamIds");
-            }
-
             await installSemaphore.WaitAsync();
             try
             {
@@ -180,7 +198,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
                     var newLines = lines.Where(line =>
                     {
                         var match = regex.Match(line);
-                        return !match.Success || !steamIds.Contains(match.Groups[1].Value);
+                        return !match.Success || !steamIds.Contains(long.Parse(match.Groups[1].Value));
                     }).ToList();
 
                     WriteAllLines(sftp, newLines);
@@ -265,6 +283,22 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
                 installSemaphore.Release();
             }
             return true;
+        }
+
+        internal async Task ClearLastInstallResult()
+        {
+            await installSemaphore.WaitAsync();
+            try
+            {
+                if (install != null && install.IsCompleted)
+                {
+                    install = null;
+                }
+            }
+            finally
+            {
+                installSemaphore.Release();
+            }
         }
     }
 }

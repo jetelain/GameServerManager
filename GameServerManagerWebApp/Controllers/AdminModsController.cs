@@ -80,6 +80,7 @@ namespace GameServerManagerWebApp.Controllers
                 .Select(s => s.Trim())
                 .Where(m => !string.IsNullOrEmpty(m))
                 .Where(m => long.TryParse(m, out _))
+                .Select(long.Parse)
                 .ToList();
 
             var request = await _modManager.Add(server, list);
@@ -111,7 +112,7 @@ namespace GameServerManagerWebApp.Controllers
                 return NotFound();
             }
             var mods = await _modManager.GetInstalledMods(server); ;
-            var emptyMods = mods.Where(m => m.ModSize == 0).Select(m => m.ModSteamId).ToList();
+            var emptyMods = mods.Where(m => m.ModSize == 0).Select(m => long.Parse(m.ModSteamId)).ToList();
             if (emptyMods.Count > 0)
             {
                 await _modManager.RemoveFromList(server, emptyMods);
@@ -145,5 +146,32 @@ namespace GameServerManagerWebApp.Controllers
             await _modManager.Uninstall(server, new [] { modSteamId });
             return RedirectToAction(nameof(Index));
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Update(int id, long modSteamId)
+        {
+            var server = await _context.HostServers.FindAsync(id);
+            if (server == null)
+            {
+                return NotFound();
+            }
+            await _modManager.RequestInstall(server, new List<long>() { modSteamId });
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ClearUpdateResult(int id)
+        {
+            var server = await _context.HostServers.FindAsync(id);
+            if (server == null)
+            {
+                return NotFound();
+            }
+            await _modManager.ClearLastInstallResult(server);
+            return RedirectToAction(nameof(Index));
+        }
+        
     }
 }

@@ -45,12 +45,17 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
             return GetEntry(server).RequestModsInstall(sshService);
         }
 
-        public Task<ModsAddResult> Add(HostServer server, List<string> modList)
+        public Task RequestInstall(HostServer server, List<long> modList)
+        {
+            return GetEntry(server).RequestModsInstall(sshService, modList);
+        }
+
+        public Task<ModsAddResult> Add(HostServer server, List<long> modList)
         {
             return GetEntry(server).AddMods(sshService, modList);
         }
 
-        public Task<bool> RemoveFromList(HostServer server, List<string> modList)
+        public Task<bool> RemoveFromList(HostServer server, List<long> modList)
         {
             return GetEntry(server).RemoveModsFromList(sshService, modList);
         }
@@ -68,6 +73,11 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
         public Task<List<InstalledMod>> GetInstalledMods(HostServer server)
         {
             return GetEntry(server).GetInstalledMods(sshService);
+        }
+
+        public Task ClearLastInstallResult(HostServer server)
+        {
+            return GetEntry(server).ClearLastInstallResult();
         }
     }
 }
