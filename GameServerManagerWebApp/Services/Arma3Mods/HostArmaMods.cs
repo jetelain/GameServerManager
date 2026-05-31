@@ -275,7 +275,7 @@ namespace GameServerManagerWebApp.Services.Arma3Mods
 
                 foreach (var mod in modList)
                 {
-                    var result = await sshService.RunCommandAsync(hostServer, $"rm -rf /home/arma3-mods/steamapps/workshop/content/107410/{mod}");
+                    var result = await sshService.RunCommandAsync(hostServer, $"sudo -H -u arma3-mods /home/arma3-mods/remove.sh {mod}");
                 }
             }
             finally
